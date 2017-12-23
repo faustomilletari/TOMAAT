@@ -1,5 +1,5 @@
 # TOMAAT [Server Side]
-TOMAAT
+TOMAAT: Serve deep learning models over the cloud
 
 ## Disclaimer
 This software is provided "as-it-is" without any guarantee of correct functionality or guarantee of quality.
