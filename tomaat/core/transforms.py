@@ -2,6 +2,12 @@ import SimpleITK as sitk
 import numpy as np
 
 
+'''
+NOTE: The transforms that are added to the data during inference must be IDENTICAL to 
+those used during training on the original data, at least for what concerns the forward transform step
+'''
+
+
 class FromITKFormatFilenameToSITK(object):
     def __init__(self, fields):
         '''
