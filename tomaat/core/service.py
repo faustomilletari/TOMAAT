@@ -121,23 +121,6 @@ class TOMAATService(object):
     def received_data_handler(self, request):
         status = 0
         error = ''
-        try:
-            json_data = json.loads(request.args['json'][0])
-        except KeyError:
-            json_data = json.loads(request.content.read())
-
-        if json_data['module_version'] < 1:
-            status = 1
-            error = 'Your client version is too old for this server'
-
-            message = json.dumps({
-                'content_mha': base64.encodestring(''),
-                'error': error,
-                'status': status,
-                'time': -1,
-            })
-
-            return message
 
         savepath = tempfile.gettempdir()
 
@@ -151,8 +134,20 @@ class TOMAATService(object):
         tmp_filename_mha = os.path.join(savepath, mha_file)
         tmp_segmentation_mha = os.path.join(savepath, mha_seg)
 
-        with open(tmp_filename_mha, 'wb') as f:
-            f.write(request.args[b'file'][0])
+        try:
+            # multipart
+            json_data = json.loads(request.args['json'][0])
+
+            with open(tmp_filename_mha, 'wb') as f:
+                f.write(request.args[b'file'][0])
+
+        except KeyError:
+            # compatibility with simple interface
+            json_data = json.loads(request.content.read())
+
+            with open(tmp_filename_mha, 'wb') as f:
+                f.write(base64.decodestring(json_data['content_mha']))
+
 
         data = {self.image_field: [tmp_filename_mha], 'uids': [uid]}
 
