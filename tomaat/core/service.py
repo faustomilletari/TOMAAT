@@ -10,18 +10,22 @@ from klein import Klein
 from twisted.internet.defer import inlineCallbacks, returnValue
 from twisted.internet import threads
 from twisted.internet.task import LoopingCall
+from twisted.internet import reactor
+from twisted.logger import Logger
 
 import tempfile
 
 
 ANNOUNCEMENT_SERVER_URL = 'http://tomaat.cloud:8000/announce'
 ANNOUNCEMENT_INTERVAL = 1600  # seconds
-INFERENCE_INTERVAL = 0.1
 
 OWN_PORT = 9000
 
+logger = Logger()
+
 
 def do_announcement(announcement_server_url, message):
+    logger.info('hello')
     json_message = json.dumps(message)
 
     response = requests.post(announcement_server_url, data=json_message)
@@ -29,9 +33,8 @@ def do_announcement(announcement_server_url, message):
     response_json = response.json()
 
     if response_json['status'] != 0:
-        print 'status {}'.format(response_json['status'])
-        print 'errors: {}'.format(response_json['error'])
-        raise SystemError
+        logger.error('status {}'.format(response_json['status']))
+        logger.error('errors: {}'.format(response_json['error']))
 
 
 class TOMAATService(object):
@@ -56,8 +59,6 @@ class TOMAATService(object):
         self.segmentation_field = segmentation_field
         self.port = port
 
-        self.app.run(port=self.port, host='0.0.0.0')
-
     @app.route('/', methods=['POST'])
     @inlineCallbacks
     def predict(self, request):
@@ -66,13 +67,6 @@ class TOMAATService(object):
         result = yield threads.deferToThread(self.received_data_handler, data)
 
         returnValue(result)
-
-    def add_inference_looping_call(self, fun, args, delay=INFERENCE_INTERVAL):
-        self.inference_looping_call.append(LoopingCall(fun, *args))
-        index = len(self.inference_looping_call) - 1
-        self.inference_looping_call[index].start(delay)
-
-        return index
 
     def stop_inference_looping_call(self, index):
         self.inference_looping_call[index].stop()
@@ -86,14 +80,14 @@ class TOMAATService(object):
         try:
             api_key = self.params['api_key']
         except KeyError:
-            return -1
+            raise ValueError('Api-key is missing')
 
         try:
             host = self.params['host']
         except KeyError:
             ip = urlopen('http://ip.42.pl/raw').read()
             port = 9000
-            host = 'http://' + ip + ':' + str(port) + '/'
+            host = 'http://' + str(ip) + ':' + str(port) + '/'
             pass
 
         message = {
@@ -104,11 +98,9 @@ class TOMAATService(object):
             'description': self.params['description'],
         }
 
-        self.announcement_looping_call.append(LoopingCall(fun, (announcement_server_url, message)))
-        index = len(self.announcement_looping_call) - 1
-        self.announcement_looping_call[index].start(delay)
+        self.announcement_looping_call = LoopingCall(fun, *(announcement_server_url, message))
 
-        return index
+        self.announcement_looping_call.start(delay)
 
     def stop_announcement_looping_call(self, index):
         self.announcement_looping_call[index].stop()
@@ -173,5 +165,9 @@ class TOMAATService(object):
         os.remove(tmp_segmentation_mha)
 
         return message
+
+    def run(self):
+        self.app.run(port=self.port, host='0.0.0.0')
+        reactor.run()
 
 

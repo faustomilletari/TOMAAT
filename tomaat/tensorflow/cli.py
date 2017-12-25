@@ -2,7 +2,6 @@ import tensorflow as tf
 import numpy as np
 import click
 import time
-from twisted.internet import reactor
 from ..core.service import TOMAATService
 from ..core.utils import TransformChain
 from ..core.transforms import (
@@ -155,7 +154,7 @@ def start_prediction_service(
     if announce:
         service.add_announcement_looping_call()
 
-    reactor.run()
+    service.run()
 
 
 cli.add_command(start_prediction_service)
