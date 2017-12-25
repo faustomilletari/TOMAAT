@@ -121,7 +121,23 @@ class TOMAATService(object):
     def received_data_handler(self, request):
         status = 0
         error = ''
-        json_data = json.loads(request.args['json'][0])
+        try:
+            json_data = json.loads(request.args['json'][0])
+        except KeyError:
+            json_data = json.loads(request.content.read())
+
+        if json_data['module_version'] < 1:
+            status = 1
+            error = 'Your client version is too old for this server'
+
+            message = json.dumps({
+                'content_mha': base64.encodestring(''),
+                'error': error,
+                'status': status,
+                'time': -1,
+            })
+
+            return message
 
         savepath = tempfile.gettempdir()
 
