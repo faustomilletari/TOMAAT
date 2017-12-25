@@ -4,3 +4,4 @@ SimpleITK
 numpy
 requests
 click
+tinydb

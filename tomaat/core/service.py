@@ -5,6 +5,7 @@ import requests
 import base64
 import SimpleITK as sitk
 
+from cgi import FieldStorage
 from urllib2 import urlopen
 from klein import Klein
 from twisted.internet.defer import inlineCallbacks, returnValue
@@ -63,8 +64,8 @@ class TOMAATService(object):
     @inlineCallbacks
     def predict(self, request):
         print 'predicting...'
-        data = json.loads(request.content.read())
-        result = yield threads.deferToThread(self.received_data_handler, data)
+
+        result = yield threads.deferToThread(self.received_data_handler, request)
 
         returnValue(result)
 
@@ -105,10 +106,10 @@ class TOMAATService(object):
     def stop_announcement_looping_call(self, index):
         self.announcement_looping_call[index].stop()
 
-    def do_inference(self, input_data):
+    def do_inference(self, input_data, **kwargs):
         raise NotImplementedError
 
-    def received_data_handler(self, json_data):
+    def received_data_handler(self, request):
         status = 0
         error = ''
 
@@ -124,8 +125,20 @@ class TOMAATService(object):
         tmp_filename_mha = os.path.join(savepath, mha_file)
         tmp_segmentation_mha = os.path.join(savepath, mha_seg)
 
-        with open(tmp_filename_mha, 'wb') as f:
-            f.write(base64.decodestring(json_data['content_mha']))
+        try:
+            # multipart
+            json_data = json.loads(request.args['json'][0])
+
+            with open(tmp_filename_mha, 'wb') as f:
+                f.write(request.args[b'file'][0])
+
+        except KeyError:
+            # compatibility with simple interface
+            json_data = json.loads(request.content.read())
+
+            with open(tmp_filename_mha, 'wb') as f:
+                f.write(base64.decodestring(json_data['content_mha']))
+
 
         data = {self.image_field: [tmp_filename_mha], 'uids': [uid]}
 
