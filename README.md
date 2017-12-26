@@ -24,7 +24,7 @@ to instantiate prediction services and as a fully functional solutions capable o
 fairly standard.
 
 A summary of the current architecture of TOMAAT is shown below:
-![architecture](http://tomaat.cloud/images/architecture.png)
+![architecture](http://tomaat.cloud/images/architecture.jpg)
 All communications between local and remote machines -- for service discovery and inference -- happen through HTTP protocol. 
 Services are discovered by a GET request to the appropriate URL while images are segmented through a POST 
 request containing JSON data. The interfaces used for communication are specified in the following:
