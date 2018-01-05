@@ -11,15 +11,12 @@ those used during training on the original data, at least for what concerns the 
 class FromITKFormatFilenameToSITK(object):
     def __init__(self, fields):
         '''
-        FromITKFormatFilenameToSITK replaces the content of the dictionary its methods are called onto stored in
-        the fields 'fields' with SITK images.
-        This transformation does not have a backward function (we don't want to overwrite our data, we rather create
-        new data)
+        FromITKFormatFilenameToSITK loads ITK compatible files
         :param fields: fields of the dictionary whose content should be replaced by SITK images
         '''
         self.fields = fields
 
-    def forward(self, data):
+    def __call__(self, data):
         for field in self.fields:
             volume_list = []
             for elem in data[field]:
@@ -29,20 +26,17 @@ class FromITKFormatFilenameToSITK(object):
 
         return data
 
-    def backward(self, **kwargs):
-        raise NotImplementedError
-
 
 class FromSITKUint8ToSITKFloat32(object):
     def __init__(self, fields):
         '''
-        FromSITKUint8ToSITKFloat32 forward method casts data to float32. the backward method does the contrary
+        FromSITKUint8ToSITKFloat32 casts data to float32.
         :param fields: fields of the dictionary whose content should be modified
         '''
         super(FromSITKUint8ToSITKFloat32, self).__init__()
         self.fields = fields
 
-    def forward(self, data):
+    def __call__(self, data):
         filter = sitk.CastImageFilter()
         filter.SetOutputPixelType(sitk.sitkFloat32)
         for field in self.fields:
@@ -51,7 +45,17 @@ class FromSITKUint8ToSITKFloat32(object):
 
         return data
 
-    def backward(self, data):
+
+class FromSITKFloat32ToSITKUint8(object):
+    def __init__(self, fields):
+        '''
+        FromSITKFloat32ToSITKUint8 method casts data back to uint8.
+        :param fields: fields of the dictionary whose content should be modified
+        '''
+        super(FromSITKFloat32ToSITKUint8, self).__init__()
+        self.fields = fields
+
+    def __call__(self, data):
         filter = sitk.CastImageFilter()
         filter.SetOutputPixelType(sitk.sitkUInt8)
         for field in self.fields:
@@ -62,21 +66,30 @@ class FromSITKUint8ToSITKFloat32(object):
 
 
 class FromSITKOriginalIntensitiesToRescaledIntensities(object):
-    def __init__(self, fields, min_intensity=0., max_intensity=1.):
+    def __init__(self,
+                 fields,
+                 min_intensity=0.,
+                 max_intensity=1.,
+                 field_original_ranges_min='original_ranges_min',
+                 field_original_ranges_max='original_ranges_max'
+                 ):
         '''
-        FromSITKOriginalIntensitiesToRescaledIntensities forward method rescales data the correct intensity range.
-        the backward method does the contrary.
+        FromSITKOriginalIntensitiesToRescaledIntensities method rescales data the correct intensity range.
         :param fields: fields of the dictionary whose content should be modified
         :param min_intensity: the lower end of the new intensity range
         :param max_intensity: the higher end of the new intensity range
+        :param field_original_ranges_min: field to use in data dictionary to store original intensity minima
+        :param field_original_ranges_max: field to use in data dictionary to store original intensity maxima
         '''
         super(FromSITKOriginalIntensitiesToRescaledIntensities, self).__init__()
 
         self.fields = fields
         self.min = min_intensity
         self.max = max_intensity
+        self.field_original_ranges_min = field_original_ranges_min
+        self.field_original_ranges_max = field_original_ranges_max
 
-    def forward(self, data):
+    def __call__(self, data):
         original_ranges_min = {}
         original_ranges_max = {}
 
@@ -97,14 +110,33 @@ class FromSITKOriginalIntensitiesToRescaledIntensities(object):
 
                 data[field][i] = rescaling_fiter.Execute(data[field][i], self.min, self.max)
 
-        data['original_ranges_min'] = original_ranges_min
-        data['original_ranges_max'] = original_ranges_max
+        data[self.field_original_ranges_min] = original_ranges_min
+        data[self.field_original_ranges_max] = original_ranges_max
 
         return data
 
-    def backward(self, data):
-        original_ranges_min = data['original_ranges_min']
-        original_ranges_max = data['original_ranges_max']
+
+class FromSITKRescaledIntensitiesToOriginalIntensities(object):
+    def __init__(self,
+                 fields,
+                 field_original_ranges_min='original_ranges_min',
+                 field_original_ranges_max='original_ranges_max'
+                 ):
+        '''
+        FromSITKRescaledIntensitiesToOriginalIntensities rescales data the original intensity range.
+        :param fields: fields of the dictionary whose content should be modified
+        :param field_original_ranges_min: field in the data dictionary containing the minima of the original volumes
+        :param field_original_ranges_max: field in the data dictionary containing the maxima of the original volumes
+        '''
+        super(FromSITKRescaledIntensitiesToOriginalIntensities, self).__init__()
+
+        self.fields = fields
+        self.field_original_ranges_min = field_original_ranges_min
+        self.field_original_ranges_max = field_original_ranges_max
+
+    def __call__(self, data):
+        original_ranges_min = data[self.field_original_ranges_min]
+        original_ranges_max = data[self.field_original_ranges_max]
         for field in self.fields:
             for i in range(len(data[field])):
                 rescaling_fiter = sitk.RescaleIntensityImageFilter()
@@ -118,17 +150,19 @@ class FromSITKOriginalIntensitiesToRescaledIntensities(object):
 
 
 class FromSITKOriginalResolutionToStandardResolution(object):
-    def __init__(self, fields, resolution):
+    def __init__(self, fields, resolution, field_original_spacings='original_spacings'):
         '''
         FromSITKOriginalResolutionToStandardResolution makes all the volumes have the same resolution
         :param fields: fields of the dictionary whose content should be modified
         :param resolution: the new resolution of the data in three directions
+        :param field_original_spacings: field to use for the data dictionary to store original resolutions
         '''
         super(FromSITKOriginalResolutionToStandardResolution, self).__init__()
         self.fields = fields
         self.resolution = resolution
+        self.field_original_spacings = field_original_spacings
 
-    def forward(self, data):
+    def __call__(self, data):
         original_spacings = {}
 
         for field in self.fields:
@@ -145,12 +179,24 @@ class FromSITKOriginalResolutionToStandardResolution(object):
                 resampler.SetSize(new_size)
 
                 data[field][i] = resampler.Execute(data[field][i])
-        data['original_spacings'] = original_spacings
+        data[self.field_original_spacings] = original_spacings
 
         return data
 
-    def backward(self, data):
-        original_spacings = data['original_spacings']
+
+class FromSITKStandardResolutionToOriginalResolution(object):
+    def __init__(self, fields, field_original_spacings='original_spacings'):
+        '''
+        FromSITKStandardResolutionToOriginalResolution makes all the volumes return to their original resolution
+        :param fields: fields of the dictionary whose content should be modified
+        :param field_original_spacings: the fields of the data dictionary where the original resolutions are stored
+        '''
+        super(FromSITKStandardResolutionToOriginalResolution, self).__init__()
+        self.fields = fields
+        self.field_original_spacings = field_original_spacings
+
+    def __call__(self, data):
+        original_spacings = data[self.field_original_spacings]
 
         for field in self.fields:
             for i in range(len(data[field])):
@@ -169,15 +215,26 @@ class FromSITKOriginalResolutionToStandardResolution(object):
 
 
 class FromSITKToNumpy(object):
-    def __init__(self, fields):
+    def __init__(self,
+                 fields,
+                 field_original_spacing='original_spacings_NP',
+                 field_original_direction='original_directions_NP',
+                 field_original_origins='original_origins_NP'
+                 ):
         '''
-        FromSITKToNumpy converts Sitk data in numpy arrays
+        FromSITKToNumpy converts SITK data in numpy arrays
         :param fields: fields of the dictionary whose content should be modified
+        :param field_original_spacing: field data dictionary used to store original spacing of sitk volumes
+        :param field_original_direction: field data dictionary used to store original direction of sitk volumes
+        :param field_original_origins: field data dictionary used to store original origin coordinate of sitk volumes
         '''
         super(FromSITKToNumpy, self).__init__()
         self.fields = fields
+        self.field_original_spacing = field_original_spacing
+        self.field_original_direction = field_original_direction
+        self.field_original_origins = field_original_origins
 
-    def forward(self, data):
+    def __call__(self, data):
         original_directions = {}
         original_origins = {}
         original_spacings = {}
@@ -194,16 +251,37 @@ class FromSITKToNumpy(object):
 
                 data[field][i] = np.transpose(sitk.GetArrayFromImage(data[field][i]).astype(dtype=np.float32), [2, 1, 0])
 
-        data['original_spacings_NP'] = original_spacings
-        data['original_directions_NP'] = original_directions
-        data['original_origins_NP'] = original_origins
+        data[self.field_original_spacing] = original_spacings
+        data[self.field_original_direction] = original_directions
+        data[self.field_original_origins] = original_origins
 
         return data
 
-    def backward(self, data):
-        original_spacings = data['original_spacings_NP']
-        original_directions = data['original_directions_NP']
-        original_origins = data['original_origins_NP']
+
+class FromNumpyToSITK(object):
+    def __init__(self,
+                 fields,
+                 field_original_spacing='original_spacings_NP',
+                 field_original_direction='original_directions_NP',
+                 field_original_origins='original_origins_NP'
+                 ):
+        '''
+        FromNumpyToSITK converts numpy array data in SITK data
+        :param fields: fields of the dictionary whose content should be modified
+        :param field_original_spacing: field data dictionary used to store original spacing of sitk volumes
+        :param field_original_direction: field data dictionary used to store original direction of sitk volumes
+        :param field_original_origins: field data dictionary used to store original origin coordinate of sitk volumes
+        '''
+        super(FromNumpyToSITK, self).__init__()
+        self.fields = fields
+        self.field_original_spacing = field_original_spacing
+        self.field_original_direction = field_original_direction
+        self.field_original_origins = field_original_origins
+
+    def __call__(self, data):
+        original_spacings = data[self.field_original_spacing]
+        original_directions = data[self.field_original_direction]
+        original_origins = data[self.field_original_origins]
         for field in self.fields:
             for i in range(len(data[field])):
                 numpy_data = np.transpose(data[field][i], [2, 1, 0])
@@ -217,17 +295,29 @@ class FromSITKToNumpy(object):
 
 
 class FromNumpyOriginalSizeToStandardSize(object):
-    def __init__(self, fields, size):
+    def __init__(self,
+                 fields,
+                 size,
+                 field_pads='pads_std_size',
+                 field_crops="crops_std_size",
+                 field_original_sizes='original_sizes_std_size'
+                 ):
         '''
-        FromNumpyOriginalSizeToStandardSize resizes data to predefined size. the backward method pads with zeros
-        therefore it does not restore any lost information due to cropping
+        FromNumpyOriginalSizeToStandardSize resizes data to predefined size.
         :param fields: fields of the dictionary whose content should be modified
         :param size: desired image size in the three directions
+        :param field_pads: field of data dictionary to use to store paddings used in this transform
+        :param field_crops: field of data dictionary to use to store crops used in this transform
+        :param field_original_sizes: field of data dictionary to use to store sizes used in this transform
         '''
         self.fields = fields
         self.size = np.asarray(size)
 
-    def forward(self, data):
+        self.field_pads = field_pads
+        self.field_crops = field_crops
+        self.field_original_sizes = field_original_sizes
+
+    def __call__(self, data):
         pads = {}
         crops = {}
         original_sizes = {}
@@ -277,15 +367,40 @@ class FromNumpyOriginalSizeToStandardSize(object):
 
                 data[field][i] = data_t
 
-        data['pads'] = pads
-        data['crops'] = crops
-        data['original_sizes_CP'] = original_sizes
+        data[self.field_pads] = pads
+        data[self.field_crops] = crops
+        data[self.field_original_sizes] = original_sizes
         return data
 
-    def backward(self, data):
-        pads = data['pads']
-        crops = data['crops']
-        original_sizes = data['original_sizes_CP']
+
+class FromNumpyStandardSizeToOriginalSize(object):
+    def __init__(self,
+                 fields,
+                 size,
+                 field_pads='pads_std_size',
+                 field_crops="crops_std_size",
+                 field_original_sizes='original_sizes_std_size'
+                 ):
+        '''
+        FromNumpyOriginalSizeToStandardSize resizes data to original size. This method pads with zeros
+        therefore it does not restore any lost information due to cropping
+        :param fields: fields of the dictionary whose content should be modified
+        :param size: desired image size in the three directions
+        :param field_pads: field of data dictionary to use to read paddings used in this transform
+        :param field_crops: field of data dictionary to use to read crops used in this transform
+        :param field_original_sizes: field of data dictionary to use to read sizes used in this transform
+        '''
+        self.fields = fields
+        self.size = np.asarray(size)
+
+        self.field_pads = field_pads
+        self.field_crops = field_crops
+        self.field_original_sizes = field_original_sizes
+
+    def __call__(self, data):
+        pads = data[self.field_pads]
+        crops = data[self.field_crops]
+        original_sizes = data[self.field_original_sizes]
         for field in self.fields:
             for i in range(len(data[field])):
                 data_t = np.pad(data[field][i], crops[field][i], mode='constant')
@@ -306,18 +421,28 @@ class FromListToNumpy5DArray(object):
     def __init__(self, fields):
         '''
         FromListToNumpy5DArray makes the data 5D and ready for inference
-        :param fields: the fields that need to be tranformed to 5D
+        :param fields: the fields that need to be transformed to 5D
         '''
 
         self.fields = fields
 
-    def forward(self, data):
+    def __call__(self, data):
         for field in self.fields:
             data[field] = np.stack(data[field])[..., np.newaxis]
 
         return data
 
-    def backward(self, data):
+
+class FromNumpy5DArrayToList(object):
+    def __init__(self, fields):
+        '''
+        FromNumpy5DArrayToList makes the data a list of numpy tensors
+        :param fields: the fields that need to be transformed to 5D
+        '''
+
+        self.fields = fields
+
+    def __call__(self, data):
         for field in self.fields:
             data_t = []
             for i in range(data[field].shape[0]):
