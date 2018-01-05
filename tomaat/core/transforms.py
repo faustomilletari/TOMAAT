@@ -376,7 +376,6 @@ class FromNumpyOriginalSizeToStandardSize(object):
 class FromNumpyStandardSizeToOriginalSize(object):
     def __init__(self,
                  fields,
-                 size,
                  field_pads='pads_std_size',
                  field_crops="crops_std_size",
                  field_original_sizes='original_sizes_std_size'
@@ -385,13 +384,11 @@ class FromNumpyStandardSizeToOriginalSize(object):
         FromNumpyOriginalSizeToStandardSize resizes data to original size. This method pads with zeros
         therefore it does not restore any lost information due to cropping
         :param fields: fields of the dictionary whose content should be modified
-        :param size: desired image size in the three directions
         :param field_pads: field of data dictionary to use to read paddings used in this transform
         :param field_crops: field of data dictionary to use to read crops used in this transform
         :param field_original_sizes: field of data dictionary to use to read sizes used in this transform
         '''
         self.fields = fields
-        self.size = np.asarray(size)
 
         self.field_pads = field_pads
         self.field_crops = field_crops
