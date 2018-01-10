@@ -31,14 +31,15 @@ def do_announcement(announcement_server_url, message):
 
     try:
         response = requests.post(announcement_server_url, data=json_message)
+
+        response_json = response.json()
+
+        if response_json['status'] != 0:
+            logger.error('status {}'.format(response_json['status']))
+            logger.error('errors: {}'.format(response_json['error']))
     except:
+        logger.error('WARNING: ERROR while connecting to announcement service.')
         pass
-
-    response_json = response.json()
-
-    if response_json['status'] != 0:
-        logger.error('status {}'.format(response_json['status']))
-        logger.error('errors: {}'.format(response_json['error']))
 
 
 class TOMAATService(object):

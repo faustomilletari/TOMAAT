@@ -81,10 +81,15 @@ def announce_handler(json_data):
         print 'CREATING SERVICE'
         creation_time = time.time()
 
+        idx_delete = None
+        
         for i in range(len(db_service_endpoints)):
             # if the developer already has a service replace old service with new
             if db_service_endpoints[i]['api_key'] == json_data['api_key']:
-                del db_service_endpoints[i]
+                idx_delete = i
+
+        if idx_delete is not None:
+            del db_service_endpoints[idx_delete]
 
         json_data['creation_time'] = creation_time
 
@@ -107,6 +112,7 @@ def discover_handler():
     endpoint_descriptions = []
 
     print 'SENDING CURRENT ENDPOINTS'
+    print 'ENDPOINTS IN MEMORY ARE: {}'.format(db_service_endpoints)
 
     for element in db_service_endpoints:
         print element
