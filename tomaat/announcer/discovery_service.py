@@ -67,6 +67,11 @@ def screen_announcement_json(json_data):
     return status, error
 
 
+def open_db_api_keys(file):
+    global db_api_keys
+    db_api_keys = TinyDB(file)
+
+
 def announce_handler(json_data):
     status, error = screen_announcement_json(json_data)
     if status == 0:
@@ -161,9 +166,7 @@ def discover(none):
 @click.command()
 @click.option('--db_filename', default='./db/api_key_db.json')
 def start_service(db_filename):
-    global db_api_keys
-    db_api_keys = TinyDB(db_filename)
-
+    open_db_api_keys(db_filename)
     app.run(port=port, host='0.0.0.0')
     reactor.run()
 
