@@ -22,16 +22,6 @@ def cli():
     pass
 
 
-@click.command()
-@click.option('--db_filename', default='./db/api_key_db.json')
-def start_service(db_filename):
-    global db_api_keys
-    db_api_keys = TinyDB(db_filename)
-
-    app.run(port=port, host='0.0.0.0')
-    reactor.run()
-
-
 def screen_announcement_json(json_data):
     status = 0
     error = ''
@@ -166,6 +156,16 @@ def discover(none):
     result = yield threads.deferToThread(discover_handler)
 
     returnValue(result)
+
+
+@click.command()
+@click.option('--db_filename', default='./db/api_key_db.json')
+def start_service(db_filename):
+    global db_api_keys
+    db_api_keys = TinyDB(db_filename)
+
+    app.run(port=port, host='0.0.0.0')
+    reactor.run()
 
 
 if __name__ == '__main__':
