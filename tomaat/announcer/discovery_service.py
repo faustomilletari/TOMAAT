@@ -171,6 +171,9 @@ def start_service(db_filename):
     reactor.run()
 
 
+cli.add_command(start_service)
+
+
 if __name__ == '__main__':
     cli()
 
