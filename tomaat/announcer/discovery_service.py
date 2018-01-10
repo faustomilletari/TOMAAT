@@ -4,6 +4,7 @@ from twisted.internet.defer import inlineCallbacks, returnValue
 from twisted.internet import reactor
 from twisted.internet import threads
 import time
+import click
 
 from tinydb import TinyDB, Query
 
@@ -11,11 +12,19 @@ from tinydb import TinyDB, Query
 timeout = 3600  # seconds
 port = 80
 
-db_api_keys = TinyDB('./db/api_key_db.json')
-
 db_service_endpoints = []
 
 app = Klein()
+
+
+@click.command()
+@click.option('--db_filename', default='./db/api_key_db.json')
+def start_service(db_filename):
+    global db_api_keys
+    db_api_keys = TinyDB(db_filename)
+
+    app.run(port=port, host='0.0.0.0')
+    reactor.run()
 
 
 def screen_announcement_json(json_data):
@@ -82,7 +91,7 @@ def announce_handler(json_data):
         creation_time = time.time()
 
         idx_delete = None
-        
+
         for i in range(len(db_service_endpoints)):
             # if the developer already has a service replace old service with new
             if db_service_endpoints[i]['api_key'] == json_data['api_key']:
@@ -154,7 +163,12 @@ def discover(none):
     returnValue(result)
 
 
-if __name__ == '__main__':
-    app.run(port=port, host='0.0.0.0')
+@click.group()
+def cli():
+    pass
 
-    reactor.run()
+
+if __name__ == '__main__':
+    cli()
+
+
