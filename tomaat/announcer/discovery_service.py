@@ -10,7 +10,7 @@ from tinydb import TinyDB, Query
 
 
 timeout = 3600  # seconds
-port = 80
+port = 8000
 
 db_service_endpoints = []
 
