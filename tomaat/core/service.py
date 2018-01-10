@@ -29,7 +29,10 @@ def do_announcement(announcement_server_url, message):
     logger.info('hello')
     json_message = json.dumps(message)
 
-    response = requests.post(announcement_server_url, data=json_message)
+    try:
+        response = requests.post(announcement_server_url, data=json_message)
+    except:
+        pass
 
     response_json = response.json()
 
