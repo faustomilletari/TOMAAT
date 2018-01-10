@@ -17,6 +17,11 @@ db_service_endpoints = []
 app = Klein()
 
 
+@click.group()
+def cli():
+    pass
+
+
 @click.command()
 @click.option('--db_filename', default='./db/api_key_db.json')
 def start_service(db_filename):
@@ -161,11 +166,6 @@ def discover(none):
     result = yield threads.deferToThread(discover_handler)
 
     returnValue(result)
-
-
-@click.group()
-def cli():
-    pass
 
 
 if __name__ == '__main__':
