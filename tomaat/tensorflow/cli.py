@@ -12,6 +12,11 @@ from ..core.transforms import (
     FromListToNumpy5DArray,
     FromSITKUint8ToSITKFloat32,
     FromSITKOriginalResolutionToStandardResolution,
+
+    FromNumpyToSITK,
+    FromNumpyStandardSizeToOriginalSize,
+    FromNumpy5DArrayToList,
+    FromSITKStandardResolutionToOriginalResolution,
 )
 
 
@@ -120,22 +125,27 @@ def start_prediction_service(
     transform_6 = FromNumpyOriginalSizeToStandardSize(fields=['images'], size=volume_size)
     transform_7 = FromListToNumpy5DArray(fields=['images'])
 
+    antitransform_7 = FromNumpy5DArrayToList(fields=['images'])
+    antitransform_6 = FromNumpyStandardSizeToOriginalSize(fields=['images'])
+    antitransform_5 = FromNumpyToSITK(fields=['images'])
+    antitransform_4 = FromSITKStandardResolutionToOriginalResolution(fields=['images'])
+
     data_read_pipeline = TransformChain(
-        [transform_1.forward,
-         transform_2.forward,
-         transform_3.forward,
-         transform_4.forward,
-         transform_5.forward,
-         transform_6.forward,
-         transform_7.forward,
+        [transform_1,
+         transform_2,
+         transform_3,
+         transform_4,
+         transform_5,
+         transform_6,
+         transform_7,
          ]
     )
 
     data_write_pipeline = TransformChain(
-        [transform_7.backward,
-         transform_6.backward,
-         transform_5.backward,
-         transform_4.backward,
+        [antitransform_7,
+         antitransform_6,
+         antitransform_5,
+         antitransform_4,
          ]
     )
 
