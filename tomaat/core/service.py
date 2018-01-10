@@ -26,7 +26,6 @@ logger = Logger()
 
 
 def do_announcement(announcement_server_url, message):
-    logger.info('hello')
     json_message = json.dumps(message)
 
     try:
