@@ -36,7 +36,7 @@ def screen_announcement_json(json_data):
 
     # 'modality' -- is the modality
     # 'anatomy' -- is the anatomy
-    # 'dimensionality' -- is the dimensionality
+    # 'task' -- is the task
     # 'description' -- is a short textual description of the service
 
     try:
@@ -82,10 +82,10 @@ def screen_announcement_json(json_data):
         error += 'No endpoint anatomy specified '
 
     try:
-        json_data['dimensionality']
+        json_data['task']
     except KeyError:
         status += 1
-        error += 'No endpoint dimensionality specified '
+        error += 'No endpoint task specified '
 
     try:
         json_data['description']

@@ -103,7 +103,7 @@ class TOMAATService(object):
             'interface_url': host+'interface',
             'name': self.params['name'],
             'modality': self.params['modality'],
-            'dimensionality': self.params['dimensionality'],
+            'task': self.params['task'],
             'anatomy': self.params['anatomy'],
             'description': self.params['description'],
             'SID': self.params['SID']

@@ -40,6 +40,8 @@ class TOMAATTensorflow(TOMAATService):
         [  # THIS defines the input interface of this service
             {'type': 'volume', 'destination': 'input'},  # a volume that will be transmitted in field 'input'
             {'type': 'slider', 'destination': 'threshold', 'minimum': 0, 'maximum': 1},  # a threshold
+            {'type': 'checkbox', 'destination': 'return_VTK', 'text': 'return VTK mesh'},
+            {'type': 'radiobutton', 'destination': 'spacing', 'text': 'spacing metric', 'options': ['millimeters', 'meters']},
         ]
 
     def __init__(self, sess, input_tensor, output_tensor, **kwargs):
@@ -136,7 +138,7 @@ def start_prediction_service(
         'api_key': api_key,
         'modality': modality,
         'anatomy': anatomy,
-        'dimensionality': 3,
+        'task': 'Segmentation',
         'description': description,
         'volume_resolution': volume_resolution,
         'volume_size': volume_size,
