@@ -34,10 +34,12 @@ def cli():
 
 
 class TOMAATTensorflow(TOMAATService):
+    # This class implements the workflow for a rather simple Tensorflow-based DL segmentation application
+
     widgets = \
         [  # THIS defines the input interface of this service
             {'type': 'volume', 'destination': 'input'},  # a volume that will be transmitted in field 'input'
-            {'type': 'slider', 'destination': 'threshold', 'minimum': 0, 'maximum': 1}  # a threshold
+            {'type': 'slider', 'destination': 'threshold', 'minimum': 0, 'maximum': 1},  # a threshold
         ]
 
     def __init__(self, sess, input_tensor, output_tensor, **kwargs):
