@@ -76,7 +76,7 @@ class TOMAATTensorflow(TOMAATService):
 
         return data
 
-    def preprare_response(self, result):
+    def prepare_response(self, result):
         savepath = tempfile.gettempdir()
         uid = uuid.uuid4()
         mha_seg = str(uid) + '_seg.mha'
@@ -93,7 +93,7 @@ class TOMAATTensorflow(TOMAATService):
 
         package = [  # THIS defines the return interface of this service
             {'type': 'LabelVolume', 'content': vol_string},
-            {'type': 'PlainText', 'content': str(result['elapsed_time'])}
+            {'type': 'PlainText', 'content': str('processing took {} seconds'.format(result['elapsed_time']))}
         ]
 
         os.remove(tmp_segmentation_mha)
