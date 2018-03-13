@@ -1,5 +1,6 @@
 import SimpleITK as sitk
 import numpy as np
+import os
 
 
 '''
@@ -22,6 +23,7 @@ class FromITKFormatFilenameToSITK(object):
             for elem in data[field]:
                 volume = sitk.ReadImage(elem)
                 volume_list.append(volume)
+                os.remove(elem)
             data[field] = volume_list
 
         return data

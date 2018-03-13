@@ -2,6 +2,14 @@ import tensorflow as tf
 import numpy as np
 import click
 import time
+import SimpleITK as sitk
+import base64
+
+import tempfile
+import uuid
+import os
+import json
+
 from ..core.service import TOMAATService
 from ..core.utils import TransformChain
 from ..core.transforms import (
@@ -26,6 +34,12 @@ def cli():
 
 
 class TOMAATTensorflow(TOMAATService):
+    widgets = \
+        [  # THIS defines the input interface of this service
+            {'type': 'volume', 'destination': 'input'},  # a volume that will be transmitted in field 'input'
+            {'type': 'slider', 'destination': 'threshold', 'minimum': 0, 'maximum': 1}  # a threshold
+        ]
+
     def __init__(self, sess, input_tensor, output_tensor, **kwargs):
 
         self.sess = sess
@@ -34,15 +48,57 @@ class TOMAATTensorflow(TOMAATService):
 
         super(TOMAATTensorflow, self).__init__(**kwargs)
 
-    def do_inference(self, data, threshold=0.5):
+    def parse_request(self, request):
+        savepath = tempfile.gettempdir()
+
+        uid = uuid.uuid4()
+
+        mha_file = str(uid) + '.mha'
+
+        tmp_filename_mha = os.path.join(savepath, mha_file)
+
+        with open(tmp_filename_mha, 'wb') as f:
+            f.write(request.args['input'][0])
+
+        threshold = float(request.args['threshold'][0])
+
+        data = {self.image_field: [tmp_filename_mha], 'uids': [uid], 'threshold': [threshold]}
+
+        return data
+
+    def do_inference(self, data):
         start_time = time.time()
         result = self.sess.run(fetches=self.output_tensor, feed_dict={self.input_tensor: data[self.image_field]})
         elap_time = time.time() - start_time
 
-        data[self.segmentation_field] = (result > threshold).astype(np.float32)
+        data[self.segmentation_field] = (result > data['threshold'][0]).astype(np.float32)
         data['elapsed_time'] = elap_time
 
         return data
+
+    def preprare_response(self, result):
+        savepath = tempfile.gettempdir()
+        uid = uuid.uuid4()
+        mha_seg = str(uid) + '_seg.mha'
+        tmp_segmentation_mha = os.path.join(savepath, mha_seg)
+
+        filename = os.path.join(savepath, tmp_segmentation_mha)
+        writer = sitk.ImageFileWriter()
+        writer.SetFileName(filename)
+        writer.SetUseCompression(True)
+        writer.Execute(result[self.segmentation_field][0])
+
+        with open(filename, 'rb') as f:
+            vol_string = base64.encodestring(f.read())
+
+        package = [  # THIS defines the return interface of this service
+            {'type': 'LabelVolume', 'content': vol_string},
+            {'type': 'PlainText', 'content': str(result['elapsed_time'])}
+        ]
+
+        os.remove(tmp_segmentation_mha)
+
+        return package
 
 
 @click.command()
