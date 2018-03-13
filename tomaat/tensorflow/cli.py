@@ -45,32 +45,6 @@ class TOMAATTensorflow(TOMAATService):
         return data
 
 
-def inference_function(sess,
-                       input_tensor,
-                       output_tensor,
-                       data_queue,
-                       result_queue,
-                       image_field,
-                       segmentation_field,
-                       ):
-    try:
-        data = data_queue.pop()
-    except IndexError:
-        return
-
-    print 'DOING INFERENCE'
-
-    result = sess.run(fetches=output_tensor, feed_dict={input_tensor: data[image_field]})
-
-    result_dict = {}
-    result_dict['uid'] = data['uid']
-    result_dict[segmentation_field] = [result]
-
-    result_queue.append_left(result_dict)
-
-    return
-
-
 @click.command()
 @click.option('--model_path')
 @click.option('--input_tensor_name', default="images:0")
@@ -104,9 +78,12 @@ def start_prediction_service(
         'api_key': api_key,
         'modality': modality,
         'anatomy': anatomy,
+        'dimensionality': 3,
         'description': description,
         'volume_resolution': volume_resolution,
         'volume_size': volume_size,
+        'name': 'TEST',
+        'SID': '0000000'
     }
     sess = tf.Session()
 

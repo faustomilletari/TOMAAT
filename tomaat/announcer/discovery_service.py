@@ -1,4 +1,5 @@
 import json
+import copy
 from klein import Klein
 from twisted.internet.defer import inlineCallbacks, returnValue
 from twisted.internet import reactor
@@ -10,7 +11,6 @@ from tinydb import TinyDB, Query
 
 
 timeout = 3600  # seconds
-port = 8000
 
 db_service_endpoints = []
 
@@ -28,10 +28,15 @@ def screen_announcement_json(json_data):
 
     # message is in the format:
     # 'api_key' -- is the API key assigned to the host of the DL service
-    # 'host' -- is the hostname of the endpoint where the service runs
-    # 'port' -- is the port of the endpoint where the service runs
+
+    # 'prediction_url' -- is the URL of the predictions service
+    # 'interface_url' -- is the URL of the interface specification service
+    # 'name' -- service name
+    # 'SID' -- service ID, unique service identifier
+
     # 'modality' -- is the modality
     # 'anatomy' -- is the anatomy
+    # 'dimensionality' -- is the dimensionality
     # 'description' -- is a short textual description of the service
 
     try:
@@ -41,10 +46,28 @@ def screen_announcement_json(json_data):
         error += 'No api_key specified '
 
     try:
-        json_data['host']
+        json_data['prediction_url']
     except KeyError:
         status += 1
-        error += 'No endpoint hostname specified '
+        error += 'No endpoint prediction url specified '
+
+    try:
+        json_data['interface_url']
+    except KeyError:
+        status += 1
+        error += 'No endpoint interface url specified '
+
+    try:
+        json_data['name']
+    except KeyError:
+        status += 1
+        error += 'No endpoint name specified '
+
+    try:
+        json_data['SID']
+    except KeyError:
+        status += 1
+        error += 'No endpoint service identifier specified '
 
     try:
         json_data['modality']
@@ -57,6 +80,12 @@ def screen_announcement_json(json_data):
     except KeyError:
         status += 1
         error += 'No endpoint anatomy specified '
+
+    try:
+        json_data['dimensionality']
+    except KeyError:
+        status += 1
+        error += 'No endpoint dimensionality specified '
 
     try:
         json_data['description']
@@ -115,35 +144,21 @@ def announce_handler(json_data):
 
 
 def discover_handler():
-    endpoint_hosts = []
-    endpoint_modalities = []
-    endpoint_anatomies = []
-    endpoint_descriptions = []
-
     print 'SENDING CURRENT ENDPOINTS'
-    print 'ENDPOINTS IN MEMORY ARE: {}'.format(db_service_endpoints)
+
+    endpoint_list = []
 
     for element in db_service_endpoints:
         print element
         current_time = time.time()
         if (current_time - element['creation_time']) < timeout:
-            endpoint_hosts.append(str(element['host']))
-            endpoint_modalities.append(str(element['modality']))
-            endpoint_anatomies.append(str(element['anatomy']))
-            endpoint_descriptions.append(str(element['description']))
+            element = copy.deepcopy(element)
+            element['api_key'] = ''
+            endpoint_list.append(element)
 
-    print "RETURNING {} SERVICES".format(len(endpoint_hosts))
+    print endpoint_list
 
-    print endpoint_hosts
-
-    message = {
-        'hosts': endpoint_hosts,
-        'modalities': endpoint_modalities,
-        'anatomies': endpoint_anatomies,
-        'descriptions': endpoint_descriptions
-    }
-
-    return json.dumps(message)
+    return json.dumps(endpoint_list)
 
 
 @app.route('/announce', methods=['POST'])
@@ -165,7 +180,8 @@ def discover(none):
 
 @click.command()
 @click.option('--db_filename', default='./db/api_key_db.json')
-def start_service(db_filename):
+@click.option('--port', default=8000)
+def start_service(db_filename, port):
     open_db_api_keys(db_filename)
     app.run(port=port, host='0.0.0.0')
     reactor.run()
