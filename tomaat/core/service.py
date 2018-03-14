@@ -5,10 +5,9 @@ import requests
 import base64
 import SimpleITK as sitk
 
-from cgi import FieldStorage
 from urllib2 import urlopen
 from klein import Klein
-from twisted.internet.defer import inlineCallbacks, returnValue
+from twisted.internet.defer import inlineCallbacks, returnValue, DeferredLock
 from twisted.internet import threads
 from twisted.internet.task import LoopingCall
 from twisted.internet import reactor
@@ -17,7 +16,7 @@ from twisted.logger import Logger
 import tempfile
 
 
-ANNOUNCEMENT_SERVER_URL = 'http://tomaat.cloud:8000/announce'
+ANNOUNCEMENT_SERVER_URL = 'http://10.110.21.48:8888/announce'
 ANNOUNCEMENT_INTERVAL = 1600  # seconds
 
 OWN_PORT = 9000
@@ -43,6 +42,9 @@ def do_announcement(announcement_server_url, message):
 
 class TOMAATService(object):
     app = Klein()
+    announcement_looping_call = []
+
+    gpu_lock = DeferredLock()
 
     def __init__(self,
                  params,
@@ -53,9 +55,8 @@ class TOMAATService(object):
                  port=OWN_PORT
                  ):
         super(TOMAATService, self).__init__()
-        self.inference_looping_call = []
-        self.announcement_looping_call = []
-        self.params=params
+
+        self.params = params
         self.data_read_pipeline = data_read_pipeline
         self.data_write_pipeline = data_write_pipeline
 
@@ -63,7 +64,12 @@ class TOMAATService(object):
         self.segmentation_field = segmentation_field
         self.port = port
 
-    @app.route('/', methods=['POST'])
+    @app.route('/interface', methods=['GET'])
+    def interface(self, _):
+        widgets = self.widgets
+        return json.dumps(widgets)
+
+    @app.route('/predict', methods=['POST'])
     @inlineCallbacks
     def predict(self, request):
         print 'predicting...'
@@ -71,9 +77,6 @@ class TOMAATService(object):
         result = yield threads.deferToThread(self.received_data_handler, request)
 
         returnValue(result)
-
-    def stop_inference_looping_call(self, index):
-        self.inference_looping_call[index].stop()
 
     def add_announcement_looping_call(
             self,
@@ -91,13 +94,16 @@ class TOMAATService(object):
         except KeyError:
             ip = urlopen('http://ip.42.pl/raw').read()
             port = 9000
-            host = 'http://' + str(ip) + ':' + str(port) + '/'
+            host = 'http://' + '10.110.21.48' + ':' + str(port) + '/'
             pass
 
         message = {
             'api_key': api_key,
-            'host': host,
+            'prediction_url': host+'predict',
+            'interface_url': host+'interface',
+            'name': self.params['name'],
             'modality': self.params['modality'],
+            'task': self.params['task'],
             'anatomy': self.params['anatomy'],
             'description': self.params['description'],
         }
@@ -109,76 +115,34 @@ class TOMAATService(object):
     def stop_announcement_looping_call(self, index):
         self.announcement_looping_call[index].stop()
 
-    def do_inference(self, input_data, **kwargs):
+    def do_inference(self, input_data):
+        raise NotImplementedError
+
+    def parse_request(self, request):
+        raise NotImplementedError
+
+    def prepare_response(self, result):
         raise NotImplementedError
 
     def received_data_handler(self, request):
-        status = 0
-        error = ''
+        print 'PARSING REQUEST'
+        data = self.parse_request(request)
 
-        savepath = tempfile.gettempdir()
-
-        print 'RECEIVED REQUEST'
-
-        uid = uuid.uuid4()
-
-        mha_file = str(uid) + '.mha'
-        mha_seg = str(uid) + '_seg.mha'
-
-        tmp_filename_mha = os.path.join(savepath, mha_file)
-        tmp_segmentation_mha = os.path.join(savepath, mha_seg)
-
-        try:
-            # multipart
-            json_data = json.loads(request.args['json'][0])
-
-            with open(tmp_filename_mha, 'wb') as f:
-                f.write(request.args[b'file'][0])
-
-        except KeyError:
-            # compatibility with simple interface
-            json_data = json.loads(request.content.read())
-
-            with open(tmp_filename_mha, 'wb') as f:
-                f.write(base64.decodestring(json_data['content_mha']))
-
-
-        data = {self.image_field: [tmp_filename_mha], 'uids': [uid]}
-
+        print 'TRANSFORMING DATA'
         transformed_data = self.data_read_pipeline(data)
 
-        result = self.do_inference(transformed_data, json_data['threshold'])
+        print 'DOING INFERENCE'
+        self.gpu_lock.acquire()  # acquire GPU lock
+        result = self.do_inference(transformed_data)  # GPU call
+        self.gpu_lock.release()  # release GPU lock
 
-        try:
-            elapsed_time = result['elapsed_time'] * 1000  # now it is milliseconds
-        except KeyError:
-            elapsed_time = -1
-
-        print 'INFERENCE DONE'
-
+        print 'TRANSFORMING RESULTS'
         transformed_result = self.data_write_pipeline(result)
 
-        filename = os.path.join(savepath, tmp_segmentation_mha)
-        writer = sitk.ImageFileWriter()
-        writer.SetFileName(filename)
-        writer.SetUseCompression(True)
-        writer.Execute(transformed_result[self.segmentation_field][0])
+        print 'PREPARING RESPONSE'
+        response = self.prepare_response(transformed_result)
 
-        print 'WRITING BACK'
-
-        with open(filename, 'rb') as f:
-            message = json.dumps({
-                'content_mha': base64.encodestring(f.read()),
-                'error': error,
-                'status': status,
-                'time': elapsed_time,
-
-            })
-
-        print 'SENDING INFERENCE RESULTS BACK'
-
-        os.remove(tmp_filename_mha)
-        os.remove(tmp_segmentation_mha)
+        message = json.dumps(response)
 
         return message
 
