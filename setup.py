@@ -1,7 +1,8 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
     name='tomaat',
-    packages=['tomaat',],
-    entry_points={}
+    version="0.0.1",
+    description='TOMAAT SERVER SIDE',
+    packages=find_packages(),
 )
