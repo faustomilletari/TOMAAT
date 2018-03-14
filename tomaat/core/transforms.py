@@ -473,7 +473,8 @@ class FromLabelVolumeToVTKMesh(object):
             return_VTK_field='return_VTK',
             spacings_field='original_spacings_NP',
             sizes_field='original_sizes_std_size',
-            origins_field='original_origins_NP'
+            origins_field='original_origins_NP',
+            coords_conv_field='coords_conv'
     ):
 
         self.label_filed = label_filed
@@ -482,16 +483,18 @@ class FromLabelVolumeToVTKMesh(object):
         self.spacings_field = spacings_field
         self.sizes_field = sizes_field
         self.origins_field = origins_field
+        self.coords_conv_field = coords_conv_field
 
     def __call__(self, data):
         meshes = []
 
-        for label, spacing, origin, size, return_VTK in zip(
+        for label, spacing, origin, size, return_VTK, coords_conv in zip(
                 data[self.label_filed],
                 data[self.spacings_field][self.label_filed],
                 data[self.origins_field][self.label_filed],
                 data[self.sizes_field][self.label_filed],
                 data[self.return_VTK_field],
+                data[self.coords_conv_field],
         ):
             if return_VTK == "False":
                 continue
@@ -533,7 +536,10 @@ class FromLabelVolumeToVTKMesh(object):
             smoother.Update()
 
             transform = vtk.vtkTransform()
-            transform.SetMatrix([-1., 0., 0., 0., 0., -1., 0., 0., 0., 0. , 1., 0., 0., 0., 0., 1.])  # canonical orien.
+            if coords_conv == 'True':
+                transform.SetMatrix([-1., 0., 0., 0., 0., -1., 0., 0., 0., 0. , 1., 0., 0., 0., 0., 1.])  # Slicer
+            elif coords_conv == 'False':
+                transform.SetMatrix([1., 0., 0., 0., 0., 1., 0., 0., 0., 0. , 1., 0., 0., 0., 0., 1.])  # Slicer
 
             transformFilter = vtk.vtkTransformPolyDataFilter()
             transformFilter.SetTransform(transform)

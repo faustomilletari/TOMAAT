@@ -43,6 +43,7 @@ class TOMAATTensorflow(TOMAATService):
             {'type': 'volume', 'destination': 'input'},  # a volume that will be transmitted in field 'input'
             {'type': 'slider', 'destination': 'threshold', 'minimum': 0, 'maximum': 1},  # a threshold
             {'type': 'checkbox', 'destination': 'return_VTK', 'text': 'return VTK mesh'},
+            {'type': 'checkbox', 'destination': 'slicer_coods_convention', 'text': 'use slicer coordinate conventions'},
             {'type': 'radiobutton', 'destination': 'spacing', 'text': 'spacing metric', 'options': ['millimeters', 'meters']},
         ]
 
@@ -72,12 +73,15 @@ class TOMAATTensorflow(TOMAATService):
 
         spacing = str(request.args['spacing'][0])
 
+        coords_conv = str(request.args['slicer_coods_convention'][0])
+
         data = {
             self.image_field: [tmp_filename_mha],
             'uids': [uid],
             'threshold': [threshold],
             'return_VTK': [return_VTK],
             'spacing_metric': [spacing],
+            'coords_conv': [coords_conv],
         }
 
         print(data)
