@@ -4,6 +4,7 @@ import click
 import time
 import SimpleITK as sitk
 import base64
+import vtk
 
 import tempfile
 import uuid
@@ -25,6 +26,7 @@ from ..core.transforms import (
     FromNumpyStandardSizeToOriginalSize,
     FromNumpy5DArrayToList,
     FromSITKStandardResolutionToOriginalResolution,
+    FromLabelVolumeToVTKMesh,
 )
 
 
@@ -66,7 +68,19 @@ class TOMAATTensorflow(TOMAATService):
 
         threshold = float(request.args['threshold'][0])
 
-        data = {self.image_field: [tmp_filename_mha], 'uids': [uid], 'threshold': [threshold]}
+        return_VTK = str(request.args['return_VTK'][0])
+
+        spacing = str(request.args['spacing'][0])
+
+        data = {
+            self.image_field: [tmp_filename_mha],
+            'uids': [uid],
+            'threshold': [threshold],
+            'return_VTK': [return_VTK],
+            'spacing_metric': [spacing],
+        }
+
+        print(data)
 
         return data
 
@@ -83,24 +97,45 @@ class TOMAATTensorflow(TOMAATService):
     def prepare_response(self, result):
         savepath = tempfile.gettempdir()
         uid = uuid.uuid4()
+
         mha_seg = str(uid) + '_seg.mha'
         tmp_segmentation_mha = os.path.join(savepath, mha_seg)
 
-        filename = os.path.join(savepath, tmp_segmentation_mha)
+        vtk_mesh = str(uid) + '_seg.vtk'
+        tmp_segmentation_vtk = os.path.join(savepath, vtk_mesh)
+
         writer = sitk.ImageFileWriter()
-        writer.SetFileName(filename)
+        writer.SetFileName(tmp_segmentation_mha)
         writer.SetUseCompression(True)
         writer.Execute(result[self.segmentation_field][0])
 
-        with open(filename, 'rb') as f:
+        print 'writing {}'.format(tmp_segmentation_mha)
+
+        with open(tmp_segmentation_mha, 'rb') as f:
             vol_string = base64.encodestring(f.read())
 
         package = [  # THIS defines the return interface of this service
-            {'type': 'LabelVolume', 'content': vol_string},
-            {'type': 'PlainText', 'content': str('processing took {} seconds'.format(result['elapsed_time']))}
+            {'type': 'LabelVolume', 'content': vol_string, 'label': ''},
+            {'type': 'PlainText', 'content': str('process took {} seconds'.format(result['elapsed_time'])), 'label': ''}
         ]
 
         os.remove(tmp_segmentation_mha)
+
+        if result['return_VTK'][0] == 'True':
+            print 'writing {}'.format(tmp_segmentation_vtk)
+
+            writer = vtk.vtkPolyDataWriter()
+            writer.SetFileName(tmp_segmentation_vtk)
+            writer.SetInput(result['meshes'][0])
+            writer.SetFileTypeToASCII()
+            writer.Write()
+
+            with open(tmp_segmentation_vtk, 'rb') as f:
+                mesh_string = base64.encodestring(f.read())
+
+            package.append({'type': 'VTKMesh', 'content': mesh_string, 'label': ''})
+
+            os.remove(tmp_segmentation_vtk)
 
         return package
 
@@ -143,7 +178,6 @@ def start_prediction_service(
         'volume_resolution': volume_resolution,
         'volume_size': volume_size,
         'name': 'TEST',
-        'SID': '0000000'
     }
     sess = tf.Session()
 
@@ -157,13 +191,14 @@ def start_prediction_service(
     transform_1 = FromITKFormatFilenameToSITK(fields=['images'])
     transform_2 = FromSITKUint8ToSITKFloat32(fields=['images'])
     transform_3 = FromSITKOriginalIntensitiesToRescaledIntensities(fields=['images'])
-    transform_4 = FromSITKOriginalResolutionToStandardResolution(fields=['images'], resolution=volume_resolution)
+    transform_4 = FromSITKOriginalResolutionToStandardResolution(fields=['images'], resolution=volume_resolution, field_spacing_metric='spacing_metric')
     transform_5 = FromSITKToNumpy(fields=['images'])
     transform_6 = FromNumpyOriginalSizeToStandardSize(fields=['images'], size=volume_size)
     transform_7 = FromListToNumpy5DArray(fields=['images'])
 
     antitransform_7 = FromNumpy5DArrayToList(fields=['images'])
     antitransform_6 = FromNumpyStandardSizeToOriginalSize(fields=['images'])
+    antitransform_6_bis = FromLabelVolumeToVTKMesh(label_filed='images', mesh_field='meshes')
     antitransform_5 = FromNumpyToSITK(fields=['images'])
     antitransform_4 = FromSITKStandardResolutionToOriginalResolution(fields=['images'])
 
@@ -181,6 +216,7 @@ def start_prediction_service(
     data_write_pipeline = TransformChain(
         [antitransform_7,
          antitransform_6,
+         antitransform_6_bis,
          antitransform_5,
          antitransform_4,
          ]

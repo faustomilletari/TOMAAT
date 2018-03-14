@@ -106,7 +106,6 @@ class TOMAATService(object):
             'task': self.params['task'],
             'anatomy': self.params['anatomy'],
             'description': self.params['description'],
-            'SID': self.params['SID']
         }
 
         self.announcement_looping_call = LoopingCall(fun, *(announcement_server_url, message))

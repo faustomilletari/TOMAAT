@@ -32,7 +32,6 @@ def screen_announcement_json(json_data):
     # 'prediction_url' -- is the URL of the predictions service
     # 'interface_url' -- is the URL of the interface specification service
     # 'name' -- service name
-    # 'SID' -- service ID, unique service identifier
 
     # 'modality' -- is the modality
     # 'anatomy' -- is the anatomy
@@ -62,12 +61,6 @@ def screen_announcement_json(json_data):
     except KeyError:
         status += 1
         error += 'No endpoint name specified '
-
-    try:
-        json_data['SID']
-    except KeyError:
-        status += 1
-        error += 'No endpoint service identifier specified '
 
     try:
         json_data['modality']
@@ -153,7 +146,9 @@ def discover_handler():
         current_time = time.time()
         if (current_time - element['creation_time']) < timeout:
             element = copy.deepcopy(element)
+            element['SID'] = element['api_key'][0:7]
             element['api_key'] = ''
+
             endpoint_list.append(element)
 
     print endpoint_list

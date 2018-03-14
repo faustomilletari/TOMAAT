@@ -1,6 +1,9 @@
 import SimpleITK as sitk
+import vtk
 import numpy as np
 import os
+
+from vtk.util.numpy_support import numpy_to_vtk
 
 
 '''
@@ -152,7 +155,7 @@ class FromSITKRescaledIntensitiesToOriginalIntensities(object):
 
 
 class FromSITKOriginalResolutionToStandardResolution(object):
-    def __init__(self, fields, resolution, field_original_spacings='original_spacings'):
+    def __init__(self, fields, resolution, field_original_spacings='original_spacings', field_spacing_metric=None):
         '''
         FromSITKOriginalResolutionToStandardResolution makes all the volumes have the same resolution
         :param fields: fields of the dictionary whose content should be modified
@@ -163,21 +166,32 @@ class FromSITKOriginalResolutionToStandardResolution(object):
         self.fields = fields
         self.resolution = resolution
         self.field_original_spacings = field_original_spacings
+        self.field_spacing_metric = field_spacing_metric
 
     def __call__(self, data):
         original_spacings = {}
 
         for field in self.fields:
             original_spacings[field] = []
+
             for i in range(len(data[field])):
-                factor = np.asarray(data[field][i].GetSpacing()) / np.asarray(self.resolution, dtype=float)
+
+                if self.field_spacing_metric is not None:
+                    if data[self.field_spacing_metric][i] == 'meters':
+                        resolution = np.asarray(self.resolution) / 1000.
+                    elif data[self.field_spacing_metric][i] == 'millimeters':
+                        resolution = np.asarray(self.resolution)
+                else:
+                    resolution = np.asarray(self.resolution)
+
+                factor = np.asarray(data[field][i].GetSpacing()) / np.asarray(resolution, dtype=float)
                 new_size = np.asarray(data[field][i].GetSize() * factor, dtype=int)
 
                 original_spacings[field].append(data[field][i].GetSpacing())
 
                 resampler = sitk.ResampleImageFilter()
                 resampler.SetReferenceImage(data[field][i])
-                resampler.SetOutputSpacing(self.resolution)
+                resampler.SetOutputSpacing(resolution)
                 resampler.SetSize(new_size)
 
                 data[field][i] = resampler.Execute(data[field][i])
@@ -448,4 +462,94 @@ class FromNumpy5DArrayToList(object):
                 data_t.append(np.squeeze(data[field][i]))
 
             data[field] = data_t
+        return data
+
+
+class FromLabelVolumeToVTKMesh(object):
+    def __init__(
+            self,
+            label_filed,
+            mesh_field,
+            return_VTK_field='return_VTK',
+            spacings_field='original_spacings_NP',
+            sizes_field='original_sizes_std_size',
+            origins_field='original_origins_NP'
+    ):
+
+        self.label_filed = label_filed
+        self.mesh_field = mesh_field
+        self.return_VTK_field = return_VTK_field
+        self.spacings_field = spacings_field
+        self.sizes_field = sizes_field
+        self.origins_field = origins_field
+
+    def __call__(self, data):
+        meshes = []
+
+        for label, spacing, origin, size, return_VTK in zip(
+                data[self.label_filed],
+                data[self.spacings_field][self.label_filed],
+                data[self.origins_field][self.label_filed],
+                data[self.sizes_field][self.label_filed],
+                data[self.return_VTK_field],
+        ):
+            if return_VTK == "False":
+                continue
+
+            label = np.transpose(np.copy(label), [2, 1, 0])
+
+            vtk_voxelmap = vtk.vtkImageData()
+            vtk_voxelmap.SetSpacing(spacing[0], spacing[1], spacing[2])
+            vtk_voxelmap.SetOrigin(origin[0], origin[1], origin[2])
+            vtk_voxelmap.SetDimensions(size[0], size[1], size[2])
+            vtk_voxelmap.SetScalarType(vtk.VTK_FLOAT)
+
+            vtk_data_array = numpy_to_vtk(num_array=label.ravel(), deep=True, array_type=vtk.VTK_FLOAT)
+
+            points = vtk_voxelmap.GetPointData()
+            points.SetScalars(vtk_data_array)
+
+            contour = vtk.vtkDiscreteMarchingCubes()
+            contour.SetInput(vtk_voxelmap)
+            contour.ComputeNormalsOn()
+            contour.GenerateValues(1, 1, 1)
+            contour.Update()
+
+            # decimator = vtk.vtkDecimatePro()
+            # decimator.SetInput(polydata)
+            # decimator.SetTargetReduction(0.5)
+            # decimator.SetPreserveTopology(1)
+            # decimator.Update()
+
+            polydata = vtk.vtkPolyData()
+            polydata.DeepCopy(contour.GetOutput())
+
+            smoother = vtk.vtkSmoothPolyDataFilter()
+            smoother.SetInput(polydata)
+            smoother.SetNumberOfIterations(150)
+            smoother.SetFeatureAngle(60)
+            smoother.SetRelaxationFactor(0.05)
+            smoother.FeatureEdgeSmoothingOff()
+            smoother.Update()
+
+            transform = vtk.vtkTransform()
+            transform.SetMatrix([-1., 0., 0., 0., 0., -1., 0., 0., 0., 0. , 1., 0., 0., 0., 0., 1.])  # canonical orien.
+
+            transformFilter = vtk.vtkTransformPolyDataFilter()
+            transformFilter.SetTransform(transform)
+            transformFilter.SetInputConnection(smoother.GetOutputPort())
+            transformFilter.Update()
+
+            mesh = vtk.vtkPolyData()
+
+            mesh.ShallowCopy(transformFilter.GetOutput())
+
+            clean_poly_data_filter = vtk.vtkCleanPolyData()
+            clean_poly_data_filter.SetInput(mesh)
+            clean_poly_data_filter.Update()
+
+            meshes.append(clean_poly_data_filter.GetOutput())
+
+        data[self.mesh_field] = meshes
+
         return data
