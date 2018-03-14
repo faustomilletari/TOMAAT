@@ -94,7 +94,7 @@ class TOMAATService(object):
         except KeyError:
             ip = urlopen('http://ip.42.pl/raw').read()
             port = 9000
-            host = 'http://' + '10.110.21.48' + ':' + str(port) + '/'
+            host = 'http://' + str(ip) + ':' + str(port) + '/'
             pass
 
         message = {
