@@ -93,7 +93,7 @@ class TOMAATService(object):
             host = self.params['host']
         except KeyError:
             ip = urlopen('http://ip.42.pl/raw').read()
-            port = 9000
+            port = self.params['port']
             host = 'http://' + str(ip) + ':' + str(port) + '/'
             pass
 
