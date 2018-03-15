@@ -16,7 +16,7 @@ from twisted.logger import Logger
 import tempfile
 
 
-ANNOUNCEMENT_SERVER_URL = 'http://tomaat.cloud:8000/announce'
+ANNOUNCEMENT_SERVER_URL = 'http://tomaat.cloud:8001/announce'
 ANNOUNCEMENT_INTERVAL = 1600  # seconds
 
 OWN_PORT = 9000
