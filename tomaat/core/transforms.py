@@ -466,6 +466,8 @@ class FromNumpy5DArrayToList(object):
 
 
 class FromLabelVolumeToVTKMesh(object):
+    mesh_reduction_percentage = 0.90
+
     def __init__(
             self,
             label_filed,
@@ -474,7 +476,8 @@ class FromLabelVolumeToVTKMesh(object):
             spacings_field='original_spacings_NP',
             sizes_field='original_sizes_std_size',
             origins_field='original_origins_NP',
-            coords_conv_field='coords_conv'
+            directions_field='original_directions_NP',
+            convert_to_ras_field='RAS'
     ):
 
         self.label_filed = label_filed
@@ -483,18 +486,20 @@ class FromLabelVolumeToVTKMesh(object):
         self.spacings_field = spacings_field
         self.sizes_field = sizes_field
         self.origins_field = origins_field
-        self.coords_conv_field = coords_conv_field
+        self.directions_field = directions_field
+        self.convert_to_ras_field = convert_to_ras_field
 
     def __call__(self, data):
         meshes = []
 
-        for label, spacing, origin, size, return_VTK, coords_conv in zip(
+        for label, spacing, origin, size, direction, return_VTK, convert_to_ras in zip(
                 data[self.label_filed],
                 data[self.spacings_field][self.label_filed],
                 data[self.origins_field][self.label_filed],
                 data[self.sizes_field][self.label_filed],
+                data[self.directions_field][self.label_filed],
                 data[self.return_VTK_field],
-                data[self.coords_conv_field],
+                data[self.convert_to_ras_field],
         ):
             if return_VTK == "False":
                 continue
@@ -518,12 +523,6 @@ class FromLabelVolumeToVTKMesh(object):
             contour.GenerateValues(1, 1, 1)
             contour.Update()
 
-            # decimator = vtk.vtkDecimatePro()
-            # decimator.SetInput(polydata)
-            # decimator.SetTargetReduction(0.5)
-            # decimator.SetPreserveTopology(1)
-            # decimator.Update()
-
             polydata = vtk.vtkPolyData()
             polydata.DeepCopy(contour.GetOutput())
 
@@ -536,10 +535,17 @@ class FromLabelVolumeToVTKMesh(object):
             smoother.Update()
 
             transform = vtk.vtkTransform()
-            if coords_conv == 'True':
-                transform.SetMatrix([-1., 0., 0., 0., 0., -1., 0., 0., 0., 0. , 1., 0., 0., 0., 0., 1.])  # Slicer
-            elif coords_conv == 'False':
-                transform.SetMatrix([1., 0., 0., 0., 0., 1., 0., 0., 0., 0. , 1., 0., 0., 0., 0., 1.])  # Slicer
+            if convert_to_ras == 'True':
+                mat = np.asarray(direction).reshape([3, 3])
+                conversion_mat = np.asarray([-1, 0, 0, 0, -1, 0, 0, 0, 1]).reshape([3, 3])
+                direction = np.matmul(conversion_mat, mat).flatten()
+
+            dir_homo = np.asarray([direction[0], direction[1], direction[2], 0.,
+                                   direction[3], direction[4], direction[5], 0.,
+                                   direction[6], direction[7], direction[8], 0.,
+                                   0., 0., 0., 1.]).reshape([4, 4])
+
+            transform.SetMatrix(dir_homo.flatten())
 
             transformFilter = vtk.vtkTransformPolyDataFilter()
             transformFilter.SetTransform(transform)
@@ -550,8 +556,14 @@ class FromLabelVolumeToVTKMesh(object):
 
             mesh.ShallowCopy(transformFilter.GetOutput())
 
+            decimator = vtk.vtkDecimatePro()
+            decimator.SetInput(mesh)
+            decimator.SetTargetReduction(self.mesh_reduction_percentage)
+            decimator.SetPreserveTopology(1)
+            decimator.Update()
+
             clean_poly_data_filter = vtk.vtkCleanPolyData()
-            clean_poly_data_filter.SetInput(mesh)
+            clean_poly_data_filter.SetInput(decimator.GetOutput())
             clean_poly_data_filter.Update()
 
             meshes.append(clean_poly_data_filter.GetOutput())
