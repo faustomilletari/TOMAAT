@@ -30,7 +30,7 @@ Services are discovered by a GET request to the appropriate URL while images are
 request containing JSON data. The interfaces used for communication are specified in the following:
 
 ### Service discovery interface
-After the GET request is made to the service discovery server url (for example http://tomaat.cloud:8000/discover) a JSON message is received. It contains:
+After the GET request is made to the service discovery server url (for example http://tomaat.cloud:8001/discover) a JSON message is received. It contains:
 * 'hosts': list of URL of inference services (endpoints)
 * 'modalities': list of modalities the endpoints are capable of processing
 * 'anatomies': list of anatomies the endpoints are capable of segmenting
