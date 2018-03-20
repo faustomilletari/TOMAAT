@@ -40,14 +40,25 @@ After the GET request is made to the service discovery server url (for example h
 * 'task': the task
 * 'name': the name of the prediction service
 * 'description': a description of the prediction service
+* 'SID': an unique identifier for a server which allows specific services to be included in workflows
 * 'creation_time': the time of last service announcement to the announcement service
 
-### Segmentation service interface
-Segmentation happens by making a POST request to the prediction server. The post request needs to contain the necessary fields. Each service requires different arguments and data to be supplied by the client. The type and field (in the POST request) of these arguments is specified in the interface description. The interface description can be obtained by a GET request to the 'interface_url' hosted by the prediction server. The response to the get request will be a list of dictionaries containing an arbitrary combination of the following elements:
+### Service interface
+Analysis happens by making a POST request to the prediction server. The post request needs to contain the necessary fields. Each service requires different arguments and data to be supplied by the client. The type and field (in the POST request) of these arguments is specified in the interface description. The interface description can be obtained by a GET request to the 'interface_url' hosted by the prediction server. The response to the get request will be a list of dictionaries containing an arbitrary combination of the following elements:
 * `{'type': 'volume', 'destination': field}`: instucts the client to build its interface such that the user can choose a volume, in MHA format, and place it in the field `field` of the POST request.
 * `{'type': 'slider', 'destination': field, 'minimum': a, 'maximum': b}`: instucts the client to build its such that the user can choose a value from a fixed interval [a, b] which will be expected to be in the field `field` of the POST request.
 * `{'type': 'checkbox', 'destination': field, 'text': UI_text }`: instructs the client to build an interface widget similar to a checkbox, to allow the user to pass a on/off type of variable which is expected to be in the field `field` of the POST request.
 * `{'type': 'radiobutton', 'destination': field, 'text': UI_text , 'options': ['UI_option1', 'UI_option2']}`: instructs the client to spawn a UI element similar to a radio button which allows the user to choose among multiple options, which will be passed to the server in the POST field `field`.
+
+### Prediction
+The user can trigger prediction on his own data through a POST request containing the necessary expected fields to the remote server. The request should be made to the URL in the `prediction_url` field of the server description dictionary obtained from the announcement service. 
+A service that expects the interface
+```
+[{'type': 'volume', 'destination': 'image'},
+ {'type': 'radiobutton', 'destination': 'type', 'text': 'MRI sequence' , 'options': ['T1', 'T2']}]
+```
+will expect POST requests having fields `image` and `type`. The `image` field will need to be populated the content of a MHA file and the `type` field will need to contain either the string `T1` or the string `T2`.
+POST request should be multipart. An example of client can be found at the URL https://github.com/faustomilletari/TOMAAT-Slicer
 
 ## Core
 
