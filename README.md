@@ -27,20 +27,27 @@ A summary of the current architecture of TOMAAT is shown below:
 ![architecture](http://tomaat.cloud/images/architecture.png)
 All communications between local and remote machines -- for service discovery and inference -- happen through HTTP protocol. 
 Services are discovered by a GET request to the appropriate URL while images are segmented through a POST 
-request containing JSON data. The interfaces used for communication are specified in the following:
+request containing JSON data. Each service has its own interface that is defined by the server administrator as a collection of standard elements. User can trasfer data to services in order to get predictions. 
+
+The interfaces used for communication are specified in the following:
 
 ### Service discovery interface
-After the GET request is made to the service discovery server url (for example http://tomaat.cloud:8001/discover) a JSON message is received. It contains:
-* 'hosts': list of URL of inference services (endpoints)
-* 'modalities': list of modalities the endpoints are capable of processing
-* 'anatomies': list of anatomies the endpoints are capable of segmenting
-* 'descriptions': list of endpoint descriptions (which method is used, which resolution, how fast it is etc...)
+After the GET request is made to the service discovery server url (for example http://tomaat.cloud:8001/discover) a JSON message is received. It contains a *list* of dictionaries containing the following fields:
+* 'interface_url': the URL that the user can GET from to obtain the description of the server interface
+* 'prediction_url': the URL that the user can POST to in order to obtain predictions 
+* 'modality': the medical imaging modality
+* 'anatomy': the anatomy
+* 'task': the task
+* 'name': the name of the prediction service
+* 'description': a description of the prediction service
+* 'creation_time': the time of last service announcement to the announcement service
 
 ### Segmentation service interface
-Segmentation happens by first dumping to disk the selected volume in a temporary folder in MHA format. At this point the volume will be re-read back into the TOMAAT-slicer extension and processed into a string through 'base64.encodestring'. At this point a JSON message will be created with the following fields:
-* 'content_mha': string containing the data from the MHA file
-* 'threshold': threshold to apply to the final segmentation result
-* 'module_version': the version of the TOMAAT-slicer extension
+Segmentation happens by making a POST request to the prediction server. The post request needs to contain the necessary fields. Each service requires different arguments and data to be supplied by the client. The type and field (in the POST request) of these arguments is specified in the interface description. The interface description can be obtained by a GET request to the 'interface_url' hosted by the prediction server. The response to the get request will be a list of dictionaries containing an arbitrary combination of the following elements:
+* `{'type': 'volume', 'destination': field}`: instucts the client to build its interface such that the user can choose a volume, in MHA format, and place it in the field `field` of the POST request.
+* `{'type': 'slider', 'destination': field, 'minimum': a, 'maximum': b}`: instucts the client to build its such that the user can choose a value from a fixed interval [a, b] which will be expected to be in the field `field` of the POST request.
+* `{'type': 'checkbox', 'destination': field, 'text': UI_text }`: instructs the client to build an interface widget similar to a checkbox, to allow the user to pass a on/off type of variable which is expected to be in the field `field` of the POST request.
+* `{'type': 'radiobutton', 'destination': field, 'text': UI_text , 'options': ['UI_option1', 'UI_option2']}`: instructs the client to spawn a UI element similar to a radio button which allows the user to choose among multiple options, which will be passed to the server in the POST field `field`.
 
 ## Core
 
