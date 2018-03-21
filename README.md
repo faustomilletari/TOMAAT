@@ -1,5 +1,5 @@
 # TOMAAT [Server Side]
-TOMAAT: Serve deep learning models over the cloud
+TOMAAT: Serve deep learning models over the cloud. *Client side* demo with slicer [older version] https://youtu.be/rWH5J3QdoNI 
 
 ## Disclaimer
 This software is provided "as-it-is" without any guarantee of correct functionality or guarantee of quality.
