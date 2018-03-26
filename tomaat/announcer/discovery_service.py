@@ -103,7 +103,7 @@ def announce_handler(json_data):
         API_KEY = Query()
         api_key_list = db_api_keys.search(API_KEY.api_key == service_api_key)
 
-        if api_key_list is None:
+        if (api_key_list is None) or (len(api_key_list) == 0):
             status += 1
             error += 'Your API KEY has not been recognized. Contact the administrator of the announcement service '
             print error

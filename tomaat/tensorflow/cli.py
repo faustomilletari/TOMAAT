@@ -9,7 +9,6 @@ import vtk
 import tempfile
 import uuid
 import os
-import json
 
 from ..core.service import TOMAATService
 from ..core.utils import TransformChain
