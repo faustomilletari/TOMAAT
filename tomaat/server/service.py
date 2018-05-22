@@ -6,6 +6,7 @@ import os
 import SimpleITK as sitk
 import base64
 import vtk
+import traceback
 
 from urllib2 import urlopen
 from klein import Klein
@@ -102,11 +103,11 @@ class TomaatService(object):
         self.input_interface = input_interface
         self.output_interface = output_interface
 
-    @klein_app.route('/{}/interface'.format(VERSION), methods=['GET'])
+    @klein_app.route('/interface', methods=['GET'])
     def interface(self, _):
         return json.dumps(self.input_interface)
 
-    @klein_app.route('/{}/predict'.format(VERSION), methods=['POST'])
+    @klein_app.route('/predict', methods=['POST'])
     @inlineCallbacks
     def predict(self, request):
         logger.info('predicting...')
@@ -136,8 +137,8 @@ class TomaatService(object):
 
         message = {
             'api_key': api_key,
-            'prediction_url': host+'/{}/predict'.format(VERSION),
-            'interface_url': host+'/{}/interface'.format(VERSION),
+            'prediction_url': host+'/predict',
+            'interface_url': host+'/interface',
             'name': self.config['name'],
             'modality': self.config['modality'],
             'task': self.config['task'],
@@ -188,16 +189,16 @@ class TomaatService(object):
                 with open(tmp_filename_mha, 'wb') as f:
                     f.write(raw[0])
 
-                data[element['destination']] = tmp_filename_mha
+                data[element['destination']] = [tmp_filename_mha]
 
             elif element['type'] == 'slider':
-                data[element['destination']] = float(raw[0])
+                data[element['destination']] = [float(raw[0])]
 
             elif element['type'] == 'checkbox':
-                data[element['destination']] = str(raw[0])
+                data[element['destination']] = [str(raw[0])]
 
             elif element['type'] == 'radiobutton':
-                data[element['destination']] = str(raw[0])
+                data[element['destination']] = [str(raw[0])]
 
         return data
 
@@ -263,18 +264,21 @@ class TomaatService(object):
         try:
             data = self.parse_request(request)
         except:
+            traceback.print_exc()
             logger.error('Server-side ERROR during request parsing')
             return self.make_error_response('Server-side ERROR during request parsing')
 
         try:
             transformed_result = self.app(data, gpu_lock=self.gpu_lock)
         except:
+            traceback.print_exc()
             logger.error('Server-side ERROR during processing')
             return self.make_error_response('Server-side ERROR during processing')
 
         try:
             response = self.make_response(transformed_result)
         except:
+            traceback.print_exc()
             logger.error('Server-side ERROR during response message creation')
             return self.make_error_response('Server-side ERROR during response message creation')
 
