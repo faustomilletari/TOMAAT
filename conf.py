@@ -17,6 +17,17 @@ import sys
 sys.path.insert(0, os.path.abspath('./'))
 
 
+import sys
+from mock import Mock as MagicMock
+
+class Mock(MagicMock):
+    @classmethod
+    def __getattr__(cls, name):
+        return MagicMock()
+
+MOCK_MODULES = ['vtk', 'torch', 'tensorflow', 'torch.backends', 'vtk.util', 'torch.backends.cudnn', 'vtk.util.numpy_support']
+sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
+
 # -- Project information -----------------------------------------------------
 
 project = u'TOMAAT'
