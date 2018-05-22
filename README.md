@@ -1,6 +1,10 @@
 # TOMAAT [Server Side]
 TOMAAT: Serve deep learning models over the cloud. *Client side* demo with slicer [older version] https://youtu.be/rWH5J3QdoNI 
 
+## Getting started
+* Execute `pip install tomaat`
+* Refer to documentation and examples
+
 ## Disclaimer
 This software is provided "as-it-is" without any guarantee of correct functionality or guarantee of quality.
 No formal support for this software will be given to users. 
