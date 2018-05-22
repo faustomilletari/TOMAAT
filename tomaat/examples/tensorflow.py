@@ -10,9 +10,9 @@ import tempfile
 import uuid
 import os
 
-from ..core.service import TOMAATService
-from ..core.utils import TransformChain
-from ..core.transforms import (
+from tomaat.server import TomaatApp, TomaatService
+from tomaat.extras import TransformChain
+from tomaat.extras import (
     FromSITKToNumpy,
     FromITKFormatFilenameToSITK,
     FromNumpyOriginalSizeToStandardSize,

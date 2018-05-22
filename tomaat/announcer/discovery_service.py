@@ -96,6 +96,7 @@ def open_db_api_keys(file):
 
 def announce_handler(json_data):
     status, error = screen_announcement_json(json_data)
+
     if status == 0:
         print 'CHECKING API KEY'
         service_api_key = json_data['api_key']
@@ -142,7 +143,6 @@ def discover_handler():
     endpoint_list = []
 
     for element in db_service_endpoints:
-        print element
         current_time = time.time()
         if (current_time - element['creation_time']) < timeout:
             element = copy.deepcopy(element)
@@ -150,8 +150,6 @@ def discover_handler():
             element['api_key'] = ''
 
             endpoint_list.append(element)
-
-    print endpoint_list
 
     return json.dumps(endpoint_list)
 
