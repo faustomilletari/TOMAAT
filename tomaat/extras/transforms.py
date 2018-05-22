@@ -571,3 +571,14 @@ class FromLabelVolumeToVTKMesh(object):
         data[self.mesh_field] = meshes
 
         return data
+
+
+class ThresholdNumpy(object):
+    def __init__(self, image_field, threshold_field):
+        self.image_field = image_field
+        self.threshold_field = threshold_field
+
+    def __call__(self, data):
+        data[self.image_field] = (data[self.image_field] >= data[self.threshold_field]).astype(np.float32)
+
+        return data

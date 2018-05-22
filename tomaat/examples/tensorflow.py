@@ -12,7 +12,7 @@ from tomaat.extras import (
     FromListToNumpy5DArray,
     FromSITKUint8ToSITKFloat32,
     FromSITKOriginalResolutionToStandardResolution,
-
+    ThresholdNumpy,
     FromNumpyToSITK,
     FromNumpyStandardSizeToOriginalSize,
     FromNumpy5DArrayToList,
@@ -72,13 +72,15 @@ def create_post_process_pipeline(config):
     :type config: dict a dictionary containing the configuration for this specific task
     :return: a callable
     """
+    antitransform_8 = ThresholdNumpy(image_field='images', threshold_field='threshold')
     antitransform_7 = FromNumpy5DArrayToList(fields=['images'])
     antitransform_6 = FromNumpyStandardSizeToOriginalSize(fields=['images'])
     antitransform_5 = FromNumpyToSITK(fields=['images'])
     antitransform_4 = FromSITKStandardResolutionToOriginalResolution(fields=['images'])
 
     post_process_pipeline = TransformChain(
-        [antitransform_7,
+        [antitransform_8,
+         antitransform_7,
          antitransform_6,
          antitransform_5,
          antitransform_4,
