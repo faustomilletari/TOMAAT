@@ -1,0 +1,13 @@
+{
+  "name": "Example TOMAAT app with tensorflow",
+  "modality": "Example Modality",
+  "task": "Example Task",
+  "anatomy": "Example Anatomy",
+  "description":"Example Description",
+  "port": 9001,
+  "announce": false,
+  "api_key": "",
+
+  "volume_resolution": [0.6, 0.6, 0.6],
+  "volume_size": [256, 256, 256]
+}
