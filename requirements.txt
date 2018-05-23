@@ -5,3 +5,4 @@ numpy
 requests
 click
 tinydb
+m2r
