@@ -1,4 +1,4 @@
-# TOMAAT [Server Side]
+# TOMAAT
 TOMAAT: Serve deep learning apps over the cloud.
 
 ## Getting started
