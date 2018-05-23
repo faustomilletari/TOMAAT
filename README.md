@@ -1,5 +1,5 @@
 # TOMAAT
-TOMAAT: Serve deep learning apps over the cloud.
+TOMAAT: Serve deep learning apps over the cloud. Check out our [paper](https://arxiv.org/abs/1803.06784).
 
 ## Getting started
 * Install TOMAAT through `pip install tomaat`
