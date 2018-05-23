@@ -1,31 +1,36 @@
-# TOMAAT [Server Side]
-TOMAAT: Serve deep learning models over the cloud. *Client side* demo with slicer [older version] https://youtu.be/rWH5J3QdoNI 
+# TOMAAT
+TOMAAT: Serve deep learning apps over the cloud.
 
 ## Getting started
-* Execute `pip install tomaat`
-* Refer to documentation and examples
+* Install TOMAAT through `pip install tomaat`
+* Refer to the [documentation](https://tomaat.readthedocs.io) and [examples](https://github.com/faustomilletari/TOMAAT/tree/master/tomaat/examples)
 
 ## Disclaimer
 This software is provided "as-it-is" without any guarantee of correct functionality or guarantee of quality.
-No formal support for this software will be given to users. 
+No formal support for this software will be given to users. It is possible to report issues on GitHub though.
 This repository and any other part of the TOMAAT project should not be used for medical purposes. 
 In particular this software should not be used to make, support, gain evidence on and aid medical decisions, 
-interventions or diagnoses. Any use of this software for finalities other than "having fun with it" is prohibited.
+interventions or diagnoses.
 The privacy of the data is not guardanteed when TOMAAT is used and we should not be held responsible for 
 data mis-use following transfer. Although we reccommend to users of TOMAAT to organize their services 
 such that no data is permanently stored or held when users request predictions, we cannot guardantee that any data 
 transferred to those remote services is not going to be misused, stored or manipulated. 
-Use TOMAAT-slicer and TOMAAT responsibly.
+Use TOMAAT responsibly.
 
 ## Architecture
 In this repository you find TOMAAT. 
-TOMAAT is written in python and contains three main parts. 
-One is the core portion, where we provide the main functions that are used to by TOMAAT to wrap deep learning
-models and make them available over the cloud, through HTTP protocol, using Klein. The second part is the code of the
-model endpoint announcement service, which is provided such that users are able to run their own endpoint announcementservices
-if they wish. The third part consists of framework specific implementation that serve both as an example of how to use TOMAAT
-to instantiate prediction services and as a fully functional solutions capable of spinning up pre-saved models that are 
-fairly standard.
+TOMAAT is written in python and contains three parts. 
+* Server
+* Client
+* Announcement Service
+
+The Server provides the main functionalities that are used to by TOMAAT to wrap deep learning
+models and make them available over the cloud, through HTTP protocol, using Klein. 
+To facilitate developement by users, we also include examples of how to use TOMAAT to instantiate prediction services. We also propose framework-specific implementations of the prediction function, which can be used to create a TomaatApp.
+
+The Client **TODO** implements functionalities that can be used by client machines to query and obtain predictions from services created using TOMAAT. We include a CLI that allows simple interaction with remote services.
+
+The Announcement Service implements the model endpoint announcement service, which is included in TOMAAT to allow users to run their own endpoint announcement services (as an alternative to the official endpoint announcement service), if they wish. 
 
 A summary of the current architecture of TOMAAT is shown below:
 ![architecture](http://tomaat.cloud/images/architecture.png)
@@ -58,8 +63,10 @@ Analysis happens by making a POST request to the prediction server. The post req
 The user can trigger prediction on his own data through a POST request containing the necessary expected fields to the remote server. The request should be made to the URL in the `prediction_url` field of the server description dictionary obtained from the announcement service. 
 A service that expects the interface
 ```
-[{'type': 'volume', 'destination': 'image'},
- {'type': 'radiobutton', 'destination': 'type', 'text': 'MRI sequence' , 'options': ['T1', 'T2']}]
+[
+    {'type': 'volume', 'destination': 'image'},
+    {'type': 'radiobutton', 'destination': 'type', 'text': 'MRI sequence' , 'options': ['T1', 'T2']}
+]
 ```
 will expect POST requests having fields `image` and `type`. The `image` field will need to be populated the content of a MHA file and the `type` field will need to contain either the string `T1` or the string `T2`.
 POST request should be multipart. An example of client can be found at the URL https://github.com/faustomilletari/TOMAAT-Slicer
