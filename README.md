@@ -100,7 +100,7 @@ input_interface = \
         {'type': 'volume', 'destination': 'images'},
         {'type': 'slider', 'destination': 'threshold', 'minimum': 0, 'maximum': 1},
         {'type': 'checkbox', 'destination': 'RAS', 'text': 'use slicer coordinate conventions'},
-        {'type': 'radiobutton', 'destination': 'spacing_metric', 'text': 'spacing metric', 'options': ['millimeters', 'meters']},
+        {'type': 'radiobutton', 'destination': 'spacing_metric', 'text': 'choose:', 'options': ['mm', 'm']},
     ]
 ```
 
@@ -150,7 +150,7 @@ Input interfaces are specified making use of standardize data elements. These ar
 * `{'type': 'volume', 'destination': field}`: instucts the client to build its interface such that the user can choose a volume, in MHA format, and place it in the field `field` of the POST request.
 * `{'type': 'slider', 'destination': field, 'minimum': a, 'maximum': b}`: instucts the client to build its such that the user can choose a value from a fixed interval [a, b] which will be expected to be in the field `field` of the POST request.
 * `{'type': 'checkbox', 'destination': field, 'text': UI_text }`: instructs the client to build an interface widget similar to a checkbox, to allow the user to pass a on/off type of variable which is expected to be in the field `field` of the POST request.
-* `{'type': 'radiobutton', 'destination': field, 'text': UI_text , 'options': ['UI_option1', 'UI_option2']}`: instructs the client to spawn a UI element similar to a radio button which allows the user to choose among multiple options, which will be passed to the server in the POST field `field`.
+* `{'type': 'radiobutton', 'destination': field, 'text': UI_text , 'options': ['a', 'b']}`: instructs the client to spawn a UI element similar to a radio button which allows the user to choose among multiple options, which will be passed to the server in the POST field `field`.
 These elements can be combined into a list as in this example:
 ```
 input_interface = \
@@ -170,9 +170,9 @@ Output interfaces can be specified using standardize output data elements. A ful
 ```
 output_interface = \
     [
-        {'type': 'LabelVolume', 'field': 'labels'}  # data['labels'] contains a label volume in SimpleITK format
-        {'type': 'VTKMesh', 'field': 'mesh'}  # data['mesh'] contains a mesh in vtk format
-        {'type': 'PlainText', 'field': 'text'}  # data['text'] contains plain text in form of a string
+        {'type': 'LabelVolume', 'field': 'labels'},  # data['labels'] contains a label volume in SimpleITK format
+        {'type': 'VTKMesh', 'field': 'mesh'},  # data['mesh'] contains a mesh in vtk format
+        {'type': 'PlainText', 'field': 'text'},  # data['text'] contains plain text in form of a string
     ]
 ```
 
