@@ -155,7 +155,7 @@ These elements can be combined into a list as in this example:
 ```
 input_interface = \
     [
-        {'type': 'volume', 'destination': 'images'},
+        {'type': 'volume', 'destination': 'images'}, 
         {'type': 'slider', 'destination': 'threshold', 'minimum': 0, 'maximum': 1},
         {'type': 'checkbox', 'destination': 'switch', 'text': 'on'},
         {'type': 'radiobutton', 'destination': 'pick', 'text': 'choose:', 'options': ['a', 'b']},
@@ -167,6 +167,14 @@ Output interfaces can be specified using standardize output data elements. A ful
 * `{'type': 'LabelVolume', 'field': 'data_dict_field'}`: instructs the reponse creation function that the content of the `data` dictionary in correspondence of the field 'data_dict_field' contains a label volume that needs to be sent to the client.
 * `{'type': 'VTKMesh', 'field': 'data_dict_field'}`: instructs the reponse creation function that the content of the `data` dictionary in correspondence of the field 'data_dict_field' contains a VTK Mesh that needs to be sent to the client.
 * `{'type': 'PlainText', 'field': 'data_dict_field'}`: instructs the reponse creation function that the content of the `data` dictionary in correspondence of the field 'data_dict_field' contains plain text that needs to be sent to the client.
+```
+output_interface = \
+    [
+        {'type': 'LabelVolume', 'field': 'labels'}  # data['labels'] contains a label volume in SimpleITK format
+        {'type': 'VTKMesh', 'field': 'mesh'}  # data['mesh'] contains a mesh in vtk format
+        {'type': 'PlainText', 'field': 'text'}  # data['text'] contains plain text in form of a string
+    ]
+```
 
 
 ## Interfaces in TOMAAT
