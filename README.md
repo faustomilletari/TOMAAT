@@ -146,14 +146,27 @@ input_interface = \
 data will be a `dict()` having one field `data['images']` which contains a volume in SimpleITK format. Again refer to the [examples](https://github.com/faustomilletari/TOMAAT/tree/master/tomaat/examples) to understand more.
 
 ### Service input interface
-Analysis happens by making **POST** requests to prediction servers. The POST requests needs to contain all the fields required by the service. Each service requires different arguments and data to be supplied by the client. The type and field (in the POST request) of these arguments is specified in the interface description. The interface description can be obtained by a GET request to the 'interface_url' hosted by the prediction server. The response to the get request will be a list of dictionaries containing an arbitrary combination of the following elements:
+Input interfaces are specified making use of standardize data elements. These are the currently supported input interface elements.
 * `{'type': 'volume', 'destination': field}`: instucts the client to build its interface such that the user can choose a volume, in MHA format, and place it in the field `field` of the POST request.
 * `{'type': 'slider', 'destination': field, 'minimum': a, 'maximum': b}`: instucts the client to build its such that the user can choose a value from a fixed interval [a, b] which will be expected to be in the field `field` of the POST request.
 * `{'type': 'checkbox', 'destination': field, 'text': UI_text }`: instructs the client to build an interface widget similar to a checkbox, to allow the user to pass a on/off type of variable which is expected to be in the field `field` of the POST request.
 * `{'type': 'radiobutton', 'destination': field, 'text': UI_text , 'options': ['UI_option1', 'UI_option2']}`: instructs the client to spawn a UI element similar to a radio button which allows the user to choose among multiple options, which will be passed to the server in the POST field `field`.
+These elements can be combined into a list as in this example:
+```
+input_interface = \
+    [
+        {'type': 'volume', 'destination': 'images'},
+        {'type': 'slider', 'destination': 'threshold', 'minimum': 0, 'maximum': 1},
+        {'type': 'checkbox', 'destination': 'switch', 'text': 'on'},
+        {'type': 'radiobutton', 'destination': 'pick', 'text': 'choose:', 'options': ['a', 'b']},
+    ]
+```
 
 ### Service output interface
-**TODO**
+Output interfaces can be specified using standardize output data elements. A full list of the supported output elements is shown here:
+* `{'type': 'LabelVolume', 'field': 'data_dict_field'}`: instructs the reponse creation function that the content of the `data` dictionary in correspondence of the field 'data_dict_field' contains a label volume that needs to be sent to the client.
+* `{'type': 'VTKMesh', 'field': 'data_dict_field'}`: instructs the reponse creation function that the content of the `data` dictionary in correspondence of the field 'data_dict_field' contains a VTK Mesh that needs to be sent to the client.
+* `{'type': 'PlainText', 'field': 'data_dict_field'}`: instructs the reponse creation function that the content of the `data` dictionary in correspondence of the field 'data_dict_field' contains plain text that needs to be sent to the client.
 
 
 ## Interfaces in TOMAAT
@@ -175,6 +188,12 @@ A **GET** request can be made to the service discovery server url (for example h
 * 'SID': an unique identifier for a server which allows specific services to be included in workflows
 * 'creation_time': the time of last service announcement to the announcement service
 * 'api_key': empty string
+
+### Requesting the input interface details
+The input interface description can be obtained by a **GET** request to the `interface_url` hosted by the prediction server. The response to the GET request is a list of dictionaries containing an arbitrary combination of standardized data elements which follow the conventions described above in the "Service input interface" section.
+
+### Requesting a prediction
+A **POST** request to a service is used to trigger prediction. The POST requests needs to contain all the fields required by the service, as specified in the input interface (see above "Service input interface"). Each service requires different arguments and data to be supplied by the client. The type and field (in the POST request) of these arguments is specified in the interface description. The POST request needs to be done using the `prediction_url` of the service.
 
 ## Mechanics 
 
