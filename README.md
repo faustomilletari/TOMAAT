@@ -63,11 +63,8 @@ Analysis happens by making a POST request to the prediction server. The post req
 * `{'type': 'checkbox', 'destination': field, 'text': UI_text }`: instructs the client to build an interface widget similar to a checkbox, to allow the user to pass a on/off type of variable which is expected to be in the field `field` of the POST request.
 * `{'type': 'radiobutton', 'destination': field, 'text': UI_text , 'options': ['UI_option1', 'UI_option2']}`: instructs the client to spawn a UI element similar to a radio button which allows the user to choose among multiple options, which will be passed to the server in the POST field `field`.
 
-### Service output interface
-**TODO**
-
 ### Prediction
-The user can trigger prediction on his own data through a POST request containing the necessary expected fields to the remote server. The request should be made to the URL in the `prediction_url` field of the server description dictionary obtained from the announcement service. 
+In this section we want to give some insight about what happens when a POST request to a server exposing a particular interface is made. The POST request must contain data in correspondence to the fields expected by the remote server. The request should be made to the URL in the `prediction_url` field of the server description dictionary obtained from the announcement service. 
 A service that expects the interface
 ```
 [
@@ -77,6 +74,9 @@ A service that expects the interface
 ```
 will expect POST requests having fields `image` and `type`. The `image` field will need to be populated the content of a MHA file and the `type` field will need to contain either the string `T1` or the string `T2`.
 POST request should be multipart. An example of client can be found at the URL https://github.com/faustomilletari/TOMAAT-Slicer
+
+### Service output interface
+**TODO**
 
 ## Creating a service
 
@@ -115,16 +115,17 @@ To define a service we need:
 
 The service configuration has a few mandatory fields which are used to enable communication with the announcement service and to define a few things such as the port at which the service will be available etc. More info can be found **TODO***. Here you can find an example of service configuration:
 ```
-{
-  "name": "Example TOMAAT app with tensorflow",
-  "modality": "Example Modality",
-  "task": "Example Task",
-  "anatomy": "Example Anatomy",
-  "description":"Example Description",
-  "port": 9001,
-  "announce": false,
-  "api_key": "",
-}
+config = 
+    {
+        "name": "Example TOMAAT app with tensorflow",
+        "modality": "Example Modality",
+        "task": "Example Task",
+        "anatomy": "Example Anatomy",
+        "description":"Example Description",
+        "port": 9001,
+        "announce": false,
+        "api_key": "",
+    }
 ```
 
 The input interface can be defined according to what we have already explained above, in the section "Service input interface". Nevertheless we provide an example:
@@ -165,9 +166,8 @@ my_service = TomaatService
 
 and we can run the service through:
 
-```
-my_service.run()
-```
+`my_service.run()`
+
 which will make it available on the network. 
 
 
