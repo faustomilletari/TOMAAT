@@ -5,6 +5,12 @@ TOMAAT allows you to serve deep learning apps over the cloud. If you have a trai
 * Install TOMAAT through `pip install tomaat`
 * Refer to the [documentation](https://tomaat.readthedocs.io) and [examples](https://github.com/faustomilletari/TOMAAT/tree/master/tomaat/examples)
 
+Note: depending on your workflow TOMAAT may require additional packages to be installed. Dependencies such as
+deep learning frameworks and software such as VTK are not installed by running `pip install`.
+
+To install Python VTK run `sudo apt-get install python-vtk`
+TO install a deep learning framework such as Tensorflow or Pytorch, refer to the appropriate documentation published online.
+
 ## Disclaimer
 This software is provided "as-it-is" without any guarantee of correct functionality or guarantee of quality.
 No formal support for this software will be given to users. It is possible to report issues on GitHub though.
