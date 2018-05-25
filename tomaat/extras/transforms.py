@@ -1,10 +1,6 @@
 import SimpleITK as sitk
-import vtk
 import numpy as np
 import os
-
-from vtk.util.numpy_support import numpy_to_vtk
-
 
 '''
 NOTE: The transforms that are added to the data during inference must be IDENTICAL to 
@@ -490,6 +486,9 @@ class FromLabelVolumeToVTKMesh(object):
         self.convert_to_ras_field = convert_to_ras_field
 
     def __call__(self, data):
+        import vtk
+        from vtk.util.numpy_support import numpy_to_vtk
+
         meshes = []
 
         for label, spacing, origin, size, direction, return_VTK, convert_to_ras in zip(

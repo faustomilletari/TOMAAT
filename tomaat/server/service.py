@@ -5,7 +5,6 @@ import uuid
 import os
 import SimpleITK as sitk
 import base64
-import vtk
 import traceback
 
 from urllib2 import urlopen
@@ -16,11 +15,9 @@ from twisted.internet.task import LoopingCall
 from twisted.internet import reactor
 from twisted.logger import Logger
 
-VERSION = 'v0.1'
+
 ANNOUNCEMENT_SERVER_URL = 'http://tomaat.cloud:8001/announce'
 ANNOUNCEMENT_INTERVAL = 1600  # seconds
-
-OWN_PORT = 9000
 
 logger = Logger()
 
@@ -237,6 +234,8 @@ class TomaatService(object):
                 os.remove(tmp_label_volume)
 
             elif type == 'VTKMesh':
+                import vtk
+
                 uid = uuid.uuid4()
 
                 vtk_mesh = str(uid) + '_seg.vtk'
