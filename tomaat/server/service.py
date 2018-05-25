@@ -6,6 +6,7 @@ import os
 import SimpleITK as sitk
 import base64
 import traceback
+import numpy as np
 
 from urllib2 import urlopen
 from klein import Klein
@@ -197,6 +198,11 @@ class TomaatService(object):
             elif element['type'] == 'radiobutton':
                 data[element['destination']] = [str(raw[0])]
 
+            elif element['type'] == 'fiducials':
+                fiducial_string = str(raw[0])
+                fiducial_list = [float(f) for f in fiducial_string.split(',')]
+                data[element['destination']] = [np.reshape(np.asarray(fiducial_list), [-1, 3])]
+
         return data
 
     def make_response(self, data):
@@ -256,6 +262,11 @@ class TomaatService(object):
 
             elif type == 'PlainText':
                 message.append({'type': 'PlainText', 'content': str(data[field][0]), 'label': ''})
+
+            elif type == 'Fiducials':
+                fiducial_array = data[field][0]
+                fiducial_str = ",".join([str(f) for f in fiducial_array.flatten().to_list()])
+                message.append({'type': 'Fiducials', 'content': fiducial_str, 'label': ''})
 
         return json.dumps(message)
 
