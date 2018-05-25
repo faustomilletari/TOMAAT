@@ -8,4 +8,12 @@ setup(
     author='Fausto Milletari',
     author_email='tomaat.segmentation@gmail.com',
     packages=find_packages(),
+    install_requires=[
+        'klein',
+        'SimpleITK',
+        'numpy',
+        'requests',
+        'click',
+        'tinydb',
+    ],
 )
