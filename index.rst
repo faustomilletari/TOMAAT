@@ -6,6 +6,12 @@
 Welcome to TOMAAT's documentation!
 ==================================
 
+TOMAAT allows you to make deep learning models public by providing them
+with an interface to communicate with the "outside" world.
+This interface is built on top of HTTP 1.1 through a framework called Klein.
+
+Here you can find documentation about TOMAAT that will help you get started with it.
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
