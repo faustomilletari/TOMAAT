@@ -11,6 +11,18 @@ deep learning frameworks and software such as VTK are not installed by running `
 To install Python VTK on Ubuntu run `sudo apt-get install python-vtk` (help for other platforms [here](https://stackoverflow.com/a/15394873)).
 TO install a deep learning framework such as Tensorflow or Pytorch, refer to the appropriate documentation published online.
 
+### Service Docker Registry
+
+You can also get started by running services that have been already created and exposed through TOMAAT.
+Docker images corresponding to these services are hosted on [DockerHub](https://hub.docker.com/r/tomaat/services/tags/)
+You just need to have docker and nvidia-docker 2 installed, and execute the command
+
+* nvidia-docker run -it -p 9001:9001 --rm tomaat/services:tag python serve.py start_service`
+
+where tag is one of the tags shown [here.](https://hub.docker.com/r/tomaat/services/tags/)
+
+This will start the service in your current system, into a docker container. 
+
 ## Disclaimer
 This software is provided "as-it-is" without any guarantee of correct functionality or guarantee of quality.
 No formal support for this software will be given to users. It is possible to report issues on GitHub though.
