@@ -15,6 +15,10 @@ Here you can find documentation about TOMAAT_ that will help you get started wit
 .. _Klein: http://klein.readthedocs.io/en/latest/
 .. _TOMAAT: https://github.com/faustomilletari/TOMAAT
 
+You can find pre-built docker images, running services through TOMAAT, on DockerHub_.
+
+.. _DockerHub: https://hub.docker.com/r/tomaat/services/tags/
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:

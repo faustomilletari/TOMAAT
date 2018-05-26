@@ -21,7 +21,7 @@ You just need to have docker and nvidia-docker 2 installed, and execute the comm
 
 where tag is one of the tags shown [here.](https://hub.docker.com/r/tomaat/services/tags/)
 
-This will start the service in your current system, into a docker container. 
+This will start the service in your current system, into a docker container.
 
 ## Disclaimer
 This software is provided "as-it-is" without any guarantee of correct functionality or guarantee of quality.
