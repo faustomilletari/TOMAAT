@@ -17,7 +17,7 @@ You can also get started by running services that have been already created and 
 Docker images corresponding to these services are hosted on [DockerHub](https://hub.docker.com/r/tomaat/services/tags/)
 You just need to have docker and nvidia-docker 2 installed, and execute the command
 
-* nvidia-docker run -it -p 9001:9001 --rm tomaat/services:tag python serve.py start_service`
+* `nvidia-docker run -it -p 9001:9001 --rm tomaat/services:tag python serve.py start_service`
 
 where tag is one of the tags shown [here.](https://hub.docker.com/r/tomaat/services/tags/)
 
