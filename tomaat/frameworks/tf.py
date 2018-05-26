@@ -5,7 +5,9 @@ class Prediction(object):
     def __init__(self, model_path, input_tensors_names, input_fields, output_tensors_names, output_fields):
         super(Prediction, self).__init__()
 
-        self.sess = tf.Session()
+        tf_conf = tf.ConfigProto()
+        tf_conf.gpu_options.allow_growth = True
+        self.sess = tf.Session(config=tf_conf)
 
         _ = tf.saved_model.loader.load(self.sess, [tf.saved_model.tag_constants.SERVING], model_path)
 
