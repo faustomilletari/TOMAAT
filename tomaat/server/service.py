@@ -199,9 +199,11 @@ class TomaatService(object):
                 data[element['destination']] = [str(raw[0])]
 
             elif element['type'] == 'fiducials':
+                # Each coordinate is separated by ';'
+                # Each coord value is separated by ','
                 fiducial_string = str(raw[0])
-                fiducial_list = [float(f) for f in fiducial_string.split(',')]
-                data[element['destination']] = [np.reshape(np.asarray(fiducial_list), [-1, 3])]
+                fiducial_list = [ [ float(val) for val in coords.split(',')] for coords in fiducial_string.split(';')]
+                data[element['destination']] = [np.asarray(fiducial_list)]
 
         return data
 
@@ -265,7 +267,7 @@ class TomaatService(object):
 
             elif type == 'Fiducials':
                 fiducial_array = data[field][0]
-                fiducial_str = ",".join([str(f) for f in fiducial_array.flatten().to_list()])
+                fiducial_str = ';'.join([','.join(map(str,fid_point)) for fid_point in fiducial_array])
                 message.append({'type': 'Fiducials', 'content': fiducial_str, 'label': ''})
 
         return json.dumps(message)
