@@ -15,5 +15,6 @@ setup(
         'requests',
         'click',
         'tinydb',
+        'pyOpenSSL',
     ],
 )
