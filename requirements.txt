@@ -6,3 +6,4 @@ requests
 click
 tinydb
 m2r
+sphinxcontrib-googleanalytics
