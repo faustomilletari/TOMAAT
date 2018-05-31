@@ -301,3 +301,47 @@ class TomaatService(object):
         reactor.run()
 
 
+class TomaatSecureService(TomaatService):
+    def start_service_announcement(
+            self,
+            fun=do_announcement,
+            announcement_server_url=ANNOUNCEMENT_SERVER_URL,
+            delay=ANNOUNCEMENT_INTERVAL
+    ):
+        try:
+            api_key = self.config['api_key']
+        except KeyError:
+            raise ValueError('Api-key is missing')
+
+        try:
+            host = self.config['host']
+        except KeyError:
+            ip = urlopen('http://ip.42.pl/raw').read()
+            port = self.config['port']
+            host = 'https://' + str(ip) + ':' + str(port) + '/'
+            pass
+
+        message = {
+            'api_key': api_key,
+            'prediction_url': host+'/predict',
+            'interface_url': host+'/interface',
+            'name': self.config['name'],
+            'modality': self.config['modality'],
+            'task': self.config['task'],
+            'anatomy': self.config['anatomy'],
+            'description': self.config['description'],
+        }
+
+        self.announcement_task = LoopingCall(fun, *(announcement_server_url, message))
+
+        self.announcement_task.start(delay)
+
+    def run(self):
+        key = self.config['ssl_key_file']
+        cert = self.config['ssl_cert_file']
+        spec_template = "ssl:{}:privateKey={}:certKey={}"
+        spec = spec_template.format(self.config['port'], key, cert)
+
+        self.klein_app.run(endpoint_description=spec, port=self.config['port'], host='0.0.0.0')
+
+        reactor.run()

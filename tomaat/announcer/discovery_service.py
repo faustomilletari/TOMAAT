@@ -1,5 +1,7 @@
 import json
+import os
 import copy
+import requests
 from klein import Klein
 from twisted.internet.defer import inlineCallbacks, returnValue
 from twisted.internet import reactor
@@ -15,6 +17,8 @@ timeout = 3600  # seconds
 db_service_endpoints = []
 
 app = Klein()
+
+ssl_app = Klein()
 
 
 @click.group()
@@ -154,6 +158,24 @@ def discover_handler():
     return json.dumps(endpoint_list)
 
 
+def discover_ssl_handler():
+    print 'MAKING UNSECURE REQUEST TO LOCALHOST'
+
+    response = requests.get('http://127.0.0.1:{}/discover'.format(unsecure_port))
+    json_data = response.json()
+
+    return json.dumps(json_data)
+
+
+def announce_ssl_handler(json_data):
+    print 'MAKING UNSECURE REQUEST TO LOCALHOST'
+
+    response = requests.post('http://127.0.0.1:{}/announce'.format(unsecure_port), data=json.dumps(json_data))
+    json_data = response.json()
+
+    return json.dumps(json_data)
+
+
 @app.route('/announce', methods=['POST'])
 @inlineCallbacks
 def announce(request):
@@ -176,16 +198,58 @@ def discover(request):
     returnValue(result)
 
 
+@ssl_app.route('/discover')
+@inlineCallbacks
+def discover_ssl(request):
+    request.setHeader('Access-Control-Allow-Origin', '*')
+    request.setHeader('Access-Control-Allow-Methods', 'GET')
+    request.setHeader('Access-Control-Allow-Headers', 'x-prototype-version,x-requested-with')
+    request.setHeader('Access-Control-Max-Age', 2520)  # 42 hours
+
+    result = yield threads.deferToThread(discover_ssl_handler)
+
+    returnValue(result)
+
+
+@ssl_app.route('/announce', methods=['POST'])
+@inlineCallbacks
+def announce_ssl(request):
+    data = json.loads(request.content.read())
+    result = yield threads.deferToThread(announce_ssl_handler, data)
+
+    returnValue(result)
+
+
 @click.command()
 @click.option('--db_filename', default='./db/api_key_db.json')
-@click.option('--port', default=8000)
+@click.option('--port', default=8001)
 def start_service(db_filename, port):
     open_db_api_keys(db_filename)
     app.run(port=port, host='0.0.0.0')
+
+    reactor.run()
+
+
+@click.command()
+@click.option('--port', default=7001)
+@click.option('--ssl_cert_dir', default='./ssl')
+@click.option('--http_port', default=8001)
+def start_ssl_service(port, ssl_cert_dir, http_port):
+    key = os.path.join(ssl_cert_dir,"key.pem")
+    cert = os.path.join(ssl_cert_dir,"cert.pem")
+    spec_template = "ssl:{}:privateKey={}:certKey={}"
+    spec = spec_template.format(port, key, cert)
+
+    global unsecure_port
+    unsecure_port = http_port
+
+    ssl_app.run(endpoint_description=spec, host='0.0.0.0', port=port)
+
     reactor.run()
 
 
 cli.add_command(start_service)
+cli.add_command(start_ssl_service)
 
 
 if __name__ == '__main__':
