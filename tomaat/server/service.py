@@ -306,6 +306,10 @@ class TomaatService(object):
 
 
 class TomaatServiceDelayedResponse(TomaatService):
+    announcement_task = None
+
+    gpu_lock = DeferredLock()
+    
     multiprocess_manager = Manager()
     result_dict = multiprocess_manager.dict()
     reqest_list = multiprocess_manager.list()
