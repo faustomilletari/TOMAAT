@@ -4,9 +4,8 @@ import os
 import nibabel as nib
 import SimpleITK as sitk
 import numpy as np
-import time
 
-from tomaat.server import TomaatService
+from tomaat.server import TomaatServiceDelayedResponse
 
 
 # this extra works with model zoo from NiftyNet and in particular with highresnet3d_brain_parcellation model.
@@ -171,7 +170,7 @@ def start_service(config_file_path, ini_file_path):
 
     application = NiftyNetZooApp(ini_file_path)
 
-    service = TomaatService(
+    service = TomaatServiceDelayedResponse(
         config=config,
         app=application,
         input_interface=input_interface,
