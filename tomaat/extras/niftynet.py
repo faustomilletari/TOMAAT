@@ -104,20 +104,8 @@ class NiftyNetZooApp(object):
     def __init__(self, ini_file):
         self.ini_file = ini_file
 
-    def __call__(self, data, **kwargs):
+    def __call__(self, data, gpu_lock):
         # lock mechanism
-
-
-        while 1:
-            try:
-                f = open('./highres3d.lock', 'r')
-                time.sleep(1)
-                f.close()
-            except IOError:
-                f = open('./highres3d.lock', 'w+')
-                f.write('locked')
-                f.close()
-                break
 
         with open(self.ini_file, 'r') as f:
             txt = f.read()
@@ -133,7 +121,13 @@ class NiftyNetZooApp(object):
 
         command = 'net_segment inference -c {}'.format(new_conf)
 
+        if gpu_lock is not None:
+            gpu_lock.acquire()  # acquire GPU lock
+
         os.system(command)
+
+        if gpu_lock is not None:
+            gpu_lock.release()  # release GPU lock
 
         transform_1 = FromNiftyToNumpy(field='labels')
         transform_2 = FromNumpyToSITK(
@@ -151,13 +145,11 @@ class NiftyNetZooApp(object):
 
         data = transform_2(transform_1(data))
 
-        os.remove('./highres3d.lock')
         os.remove(new_conf)
         os.remove(data['T1'][0])
         os.remove(label_name)
 
         return data
-
 
 
 @click.group()
