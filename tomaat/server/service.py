@@ -8,6 +8,7 @@ import base64
 import traceback
 import numpy as np
 
+from multiprocessing import Process, Manager
 from urllib2 import urlopen
 from klein import Klein
 from twisted.internet.defer import inlineCallbacks, returnValue, DeferredLock
@@ -157,8 +158,8 @@ class TomaatService(object):
         :type message: str error message to be returned to the client
         :return: response to be returned to client
         """
-        response = {'type': 'PlainText', 'content': message, 'label': 'Error!'}
-        return json.dumps(response)
+        response = [{'type': 'PlainText', 'content': message, 'label': 'Error!'}]
+        return response
 
     def parse_request(self, request):
         """
@@ -270,7 +271,7 @@ class TomaatService(object):
                 fiducial_str = ';'.join([','.join(map(str,fid_point)) for fid_point in fiducial_array])
                 message.append({'type': 'Fiducials', 'content': fiducial_str, 'label': ''})
 
-        return json.dumps(message)
+        return message
 
     def received_data_handler(self, request):
         try:
@@ -278,26 +279,118 @@ class TomaatService(object):
         except:
             traceback.print_exc()
             logger.error('Server-side ERROR during request parsing')
-            return self.make_error_response('Server-side ERROR during request parsing')
+            response = self.make_error_response('Server-side ERROR during request parsing')
+            return json.dumps(response)
 
         try:
             transformed_result = self.app(data, gpu_lock=self.gpu_lock)
         except:
             traceback.print_exc()
             logger.error('Server-side ERROR during processing')
-            return self.make_error_response('Server-side ERROR during processing')
+            response = self.make_error_response('Server-side ERROR during processing')
+            return json.dumps(response)
 
         try:
             response = self.make_response(transformed_result)
         except:
             traceback.print_exc()
             logger.error('Server-side ERROR during response message creation')
-            return self.make_error_response('Server-side ERROR during response message creation')
+            response = self.make_error_response('Server-side ERROR during response message creation')
+            return json.dumps(response)
 
-        return response
+        return json.dumps(response)
 
     def run(self):
         self.klein_app.run(port=self.config['port'], host='0.0.0.0')
         reactor.run()
 
 
+class TomaatServiceDelayedResponse(TomaatService):
+    multiprocess_manager = Manager()
+    result_dict = multiprocess_manager.dict()
+    reqest_list = multiprocess_manager.list()
+
+    klein_app = Klein()
+
+    def received_data_handler(self, request):
+        req_id = str(uuid.uuid4()).replace('-', '')
+
+        def processing_thread():
+            response = self.make_error_response('Server-side ERROR during processing')
+
+            try:
+                data = self.parse_request(request)
+            except:
+                traceback.print_exc()
+                logger.error('Server-side ERROR during request parsing')
+
+            try:
+                transformed_result = self.app(data, gpu_lock=self.gpu_lock)
+            except:
+                traceback.print_exc()
+                logger.error('Server-side ERROR during processing')
+
+            try:
+                response = self.make_response(transformed_result)
+            except:
+                traceback.print_exc()
+                logger.error('Server-side ERROR during response message creation')
+
+            self.result_dict[req_id] = response
+
+        delegated_process = Process(target=processing_thread, args=())
+        delegated_process.start()
+
+        self.reqest_list.append(req_id)
+
+        response = [{'type': 'DelayedResponse', 'request_id': req_id}]
+
+        return json.dumps(response)
+
+    @klein_app.route('/interface', methods=['GET'])
+    def interface(self, _):
+        return json.dumps(self.input_interface)
+
+    @klein_app.route('/predict', methods=['POST'])
+    @inlineCallbacks
+    def predict(self, request):
+        logger.info('predicting...')
+
+        result = yield threads.deferToThread(self.received_data_handler, request)
+
+        returnValue(result)
+
+    @klein_app.route('/responses', methods=['POST'])
+    @inlineCallbacks
+    def responses(self, request):
+        logger.info('getting responses...')
+
+        result = yield threads.deferToThread(self.responses_data_handler, request)
+
+        returnValue(result)
+
+    def responses_data_handler(self, request):
+        req_id = request.args['request_id'][0]
+
+        print(req_id)
+        print(self.reqest_list)
+
+        if req_id not in self.reqest_list:
+            response = [{
+                'type': 'PlainText',
+                'content': 'The results of request {} cannot be retrieved'.format(req_id),
+                'label': ''
+            }]
+
+            return json.dumps(response)
+
+        try:
+            response = self.result_dict[req_id]
+            #removing content of list and dict
+            del self.result_dict[req_id]
+            self.reqest_list.remove(req_id)
+        except KeyError:
+            response = [{'type': 'DelayedResponse', 'request_id': req_id}]
+
+
+        return json.dumps(response)
