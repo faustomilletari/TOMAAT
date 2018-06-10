@@ -336,6 +336,12 @@ class TomaatServiceDelayedResponse(TomaatService):
                 traceback.print_exc()
                 logger.error('Server-side ERROR during response message creation')
 
+            response.append({
+                'type': 'PlainText',
+                'content': 'The results of your earlier request {} have been received'.format(req_id),
+                'label': ''
+            })
+            
             self.result_dict[req_id] = response
 
         delegated_process = Process(target=processing_thread, args=())
