@@ -185,7 +185,7 @@ class TomaatService(object):
             if element['type'] == 'volume':
                 uid = uuid.uuid4()
 
-                mha_file = str(uid) + '.mha'
+                mha_file = str(uid).replace('-', '') + '.mha'
 
                 tmp_filename_mha = os.path.join(savepath, mha_file)
 
@@ -229,7 +229,7 @@ class TomaatService(object):
             if type == 'LabelVolume':
                 uid = uuid.uuid4()
 
-                mha_seg = str(uid) + '_seg.mha'
+                mha_seg = str(uid).replace('-', '') + '_seg.mha'
                 tmp_label_volume = os.path.join(savepath, mha_seg)
 
                 writer = sitk.ImageFileWriter()
@@ -249,7 +249,7 @@ class TomaatService(object):
 
                 uid = uuid.uuid4()
 
-                vtk_mesh = str(uid) + '_seg.vtk'
+                vtk_mesh = str(uid).replace('-', '') + '_seg.vtk'
                 tmp_vtk_mesh = os.path.join(savepath, vtk_mesh)
 
                 writer = vtk.vtkPolyDataWriter()
@@ -276,7 +276,7 @@ class TomaatService(object):
         return json.dumps(message)
 
     def received_data_handler(self, request):
-        savepath = os.path.join(tempfile.gettempdir(), str(uuid.uuid4()))
+        savepath = os.path.join(tempfile.gettempdir(), str(uuid.uuid4()).replace('-', ''))
 
         os.mkdir(savepath)
 
