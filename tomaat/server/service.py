@@ -311,8 +311,6 @@ class TomaatService(object):
         
         return json.dumps(response)
 
-        return response
-
     def run(self):
         self.klein_app.run(port=self.config['port'], host='0.0.0.0')
         reactor.run()
@@ -331,6 +329,10 @@ class TomaatServiceDelayedResponse(TomaatService):
 
     def received_data_handler(self, request):
         req_id = str(uuid.uuid4()).replace('-', '')
+
+        savepath = os.path.join(tempfile.gettempdir(), req_id)
+
+        os.mkdir(savepath)
 
         def processing_thread():
             response = self.make_error_response('Server-side ERROR during processing')
@@ -367,6 +369,8 @@ class TomaatServiceDelayedResponse(TomaatService):
         self.reqest_list.append(req_id)
 
         response = [{'type': 'DelayedResponse', 'request_id': req_id}]
+
+        shutil.rmtree(savepath)
 
         return json.dumps(response)
 
