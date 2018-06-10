@@ -7,9 +7,18 @@ import SimpleITK as sitk
 import base64
 import traceback
 import numpy as np
+import shutil
+
+try:
+    # For Python 3.0 and later
+    from urllib.request import urlopen
+except ImportError:
+    # Fall back to Python 2's urllib2
+    from urllib2 import urlopen
 
 from multiprocessing import Process, Manager
 from urllib2 import urlopen
+
 from klein import Klein
 from twisted.internet.defer import inlineCallbacks, returnValue, DeferredLock
 from twisted.internet import threads
@@ -161,7 +170,7 @@ class TomaatService(object):
         response = [{'type': 'PlainText', 'content': message, 'label': 'Error!'}]
         return response
 
-    def parse_request(self, request):
+    def parse_request(self, request, savepath):
         """
         This function takes in the content of the client message and creates a dictionary containing data.
         The service interface, that was specified in the input_interface dictionary specified at init,
@@ -171,8 +180,6 @@ class TomaatService(object):
         :return: dict containing data that can be fed to the pre-processing, inference, post-processing pipeline
         """
 
-        savepath = tempfile.gettempdir()
-
         data = {}
 
         for element in self.input_interface:
@@ -181,7 +188,7 @@ class TomaatService(object):
             if element['type'] == 'volume':
                 uid = uuid.uuid4()
 
-                mha_file = str(uid) + '.mha'
+                mha_file = str(uid).replace('-', '') + '.mha'
 
                 tmp_filename_mha = os.path.join(savepath, mha_file)
 
@@ -208,7 +215,7 @@ class TomaatService(object):
 
         return data
 
-    def make_response(self, data):
+    def make_response(self, data, savepath):
         """
         This function takes in the post-processed results of inference and creates a message for the client.
         The message is created according to the directives specified in the output_interface dictionary passed
@@ -218,8 +225,6 @@ class TomaatService(object):
         """
         message = []
 
-        savepath = tempfile.gettempdir()
-
         for element in self.output_interface:
             type = element['type']
             field = element['field']
@@ -227,7 +232,7 @@ class TomaatService(object):
             if type == 'LabelVolume':
                 uid = uuid.uuid4()
 
-                mha_seg = str(uid) + '_seg.mha'
+                mha_seg = str(uid).replace('-', '') + '_seg.mha'
                 tmp_label_volume = os.path.join(savepath, mha_seg)
 
                 writer = sitk.ImageFileWriter()
@@ -247,7 +252,7 @@ class TomaatService(object):
 
                 uid = uuid.uuid4()
 
-                vtk_mesh = str(uid) + '_seg.vtk'
+                vtk_mesh = str(uid).replace('-', '') + '_seg.vtk'
                 tmp_vtk_mesh = os.path.join(savepath, vtk_mesh)
 
                 writer = vtk.vtkPolyDataWriter()
@@ -274,8 +279,12 @@ class TomaatService(object):
         return message
 
     def received_data_handler(self, request):
+        savepath = os.path.join(tempfile.gettempdir(), str(uuid.uuid4()).replace('-', ''))
+
+        os.mkdir(savepath)
+
         try:
-            data = self.parse_request(request)
+            data = self.parse_request(request, savepath)
         except:
             traceback.print_exc()
             logger.error('Server-side ERROR during request parsing')
@@ -291,14 +300,18 @@ class TomaatService(object):
             return json.dumps(response)
 
         try:
-            response = self.make_response(transformed_result)
+            response = self.make_response(transformed_result, savepath)
         except:
             traceback.print_exc()
             logger.error('Server-side ERROR during response message creation')
             response = self.make_error_response('Server-side ERROR during response message creation')
             return json.dumps(response)
 
+        shutil.rmtree(savepath)
+        
         return json.dumps(response)
+
+        return response
 
     def run(self):
         self.klein_app.run(port=self.config['port'], host='0.0.0.0')
