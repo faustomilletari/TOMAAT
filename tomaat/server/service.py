@@ -16,7 +16,7 @@ except ImportError:
     # Fall back to Python 2's urllib2
     from urllib2 import urlopen
 
-from multiprocessing import Process, Manager
+from multiprocessing import Process, Manager, Lock
 from urllib2 import urlopen
 
 from klein import Klein
@@ -322,10 +322,17 @@ class TomaatServiceDelayedResponse(TomaatService):
     gpu_lock = DeferredLock()
     
     multiprocess_manager = Manager()
+
     result_dict = multiprocess_manager.dict()
     reqest_list = multiprocess_manager.list()
 
+    multiprocess_lock = Lock()
+
     klein_app = Klein()
+
+    def __init__(self, no_concurrent_thread_execution=True, **kwargs):
+        super(TomaatServiceDelayedResponse, self).__init__(**kwargs)
+        self.no_concurrent_thread_execution = no_concurrent_thread_execution
 
     def received_data_handler(self, request):
         req_id = str(uuid.uuid4()).replace('-', '')
@@ -335,10 +342,13 @@ class TomaatServiceDelayedResponse(TomaatService):
         os.mkdir(savepath)
 
         def processing_thread():
+            if self.no_concurrent_thread_execution:
+                self.multiprocess_lock.acquire()
+
             response = self.make_error_response('Server-side ERROR during processing')
 
             try:
-                data = self.parse_request(request)
+                data = self.parse_request(request, savepath)
             except:
                 traceback.print_exc()
                 logger.error('Server-side ERROR during request parsing')
@@ -350,18 +360,23 @@ class TomaatServiceDelayedResponse(TomaatService):
                 logger.error('Server-side ERROR during processing')
 
             try:
-                response = self.make_response(transformed_result)
+                response = self.make_response(transformed_result, savepath)
             except:
                 traceback.print_exc()
                 logger.error('Server-side ERROR during response message creation')
 
-            response.append({
+            response = [{
                 'type': 'PlainText',
                 'content': 'The results of your earlier request {} have been received'.format(req_id),
                 'label': ''
-            })
+            }] + response
 
             self.result_dict[req_id] = response
+
+            shutil.rmtree(savepath)
+
+            if self.no_concurrent_thread_execution:
+                self.multiprocess_lock.release()
 
         delegated_process = Process(target=processing_thread, args=())
         delegated_process.start()
@@ -369,8 +384,6 @@ class TomaatServiceDelayedResponse(TomaatService):
         self.reqest_list.append(req_id)
 
         response = [{'type': 'DelayedResponse', 'request_id': req_id}]
-
-        shutil.rmtree(savepath)
 
         return json.dumps(response)
 
