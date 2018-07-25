@@ -388,12 +388,22 @@ class TomaatServiceDelayedResponse(TomaatService):
         return json.dumps(response)
 
     @klein_app.route('/interface', methods=['GET'])
-    def interface(self, _):
+    def interface(self, request):
+        request.setHeader('Access-Control-Allow-Origin', '*')
+        request.setHeader('Access-Control-Allow-Methods', 'GET')
+        request.setHeader('Access-Control-Allow-Headers', 'x-prototype-version,x-requested-with')
+        request.setHeader('Access-Control-Max-Age', 2520)  # 42 hours
+
         return json.dumps(self.input_interface)
 
     @klein_app.route('/predict', methods=['POST'])
     @inlineCallbacks
     def predict(self, request):
+        request.setHeader('Access-Control-Allow-Origin', '*')
+        request.setHeader('Access-Control-Allow-Methods', 'POST')
+        request.setHeader('Access-Control-Allow-Headers', 'x-prototype-version,x-requested-with')
+        request.setHeader('Access-Control-Max-Age', 2520)  # 42 hours
+
         logger.info('predicting...')
 
         result = yield threads.deferToThread(self.received_data_handler, request)
@@ -403,6 +413,11 @@ class TomaatServiceDelayedResponse(TomaatService):
     @klein_app.route('/responses', methods=['POST'])
     @inlineCallbacks
     def responses(self, request):
+        request.setHeader('Access-Control-Allow-Origin', '*')
+        request.setHeader('Access-Control-Allow-Methods', 'POST')
+        request.setHeader('Access-Control-Allow-Headers', 'x-prototype-version,x-requested-with')
+        request.setHeader('Access-Control-Max-Age', 2520)  # 42 hours
+
         logger.info('getting responses...')
 
         result = yield threads.deferToThread(self.responses_data_handler, request)
