@@ -35,7 +35,7 @@ logger = Logger()
 
 def is_base64(s):
     try:
-        if base64.encodestring(base64.decodestring(s)) == s:
+        if base64.b64encode(base64.b64decode(s)) == s:
             return True
     except:
         pass
