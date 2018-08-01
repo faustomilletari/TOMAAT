@@ -168,7 +168,7 @@ def announce(request):
 def discover(request):
     request.setHeader('Access-Control-Allow-Origin', '*')
     request.setHeader('Access-Control-Allow-Methods', 'GET')
-    request.setHeader('Access-Control-Allow-Headers', 'x-prototype-version,x-requested-with')
+    request.setHeader('Access-Control-Allow-Headers', '*')
     request.setHeader('Access-Control-Max-Age', 2520)  # 42 hours
 
     result = yield threads.deferToThread(discover_handler)

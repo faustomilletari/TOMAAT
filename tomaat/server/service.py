@@ -33,6 +33,15 @@ ANNOUNCEMENT_INTERVAL = 1600  # seconds
 logger = Logger()
 
 
+def is_base64(s):
+    try:
+        if base64.encodestring(base64.decodestring(s)) == s:
+            return True
+    except:
+        pass
+    return False
+
+
 def do_announcement(announcement_server_url, message):
     json_message = json.dumps(message)
 
@@ -115,7 +124,7 @@ class TomaatService(object):
     def interface(self, request):
         request.setHeader('Access-Control-Allow-Origin', '*')
         request.setHeader('Access-Control-Allow-Methods', 'GET')
-        request.setHeader('Access-Control-Allow-Headers', 'x-prototype-version,x-requested-with')
+        request.setHeader('Access-Control-Allow-Headers', '*')
         request.setHeader('Access-Control-Max-Age', 2520)  # 42 hours
 
         return json.dumps(self.input_interface)
@@ -125,7 +134,7 @@ class TomaatService(object):
     def predict(self, request):
         request.setHeader('Access-Control-Allow-Origin', '*')
         request.setHeader('Access-Control-Allow-Methods', 'POST')
-        request.setHeader('Access-Control-Allow-Headers', 'x-prototype-version,x-requested-with')
+        request.setHeader('Access-Control-Allow-Headers', '*')
         request.setHeader('Access-Control-Max-Age', 2520)  # 42 hours
 
         logger.info('predicting...')
@@ -203,8 +212,14 @@ class TomaatService(object):
                 tmp_filename_mha = os.path.join(savepath, mha_file)
 
                 with open(tmp_filename_mha, 'wb') as f:
-                    f.write(raw[0])
-
+                    if is_base64(raw[0]):
+                        f.write(base64.decodestring(raw[0]))
+                    else:
+                        f.write(raw[0])
+                        print(
+                            'Your client has passed RAW file content instead of base64 encoded string: '
+                            'this is deprecated and will result in errors in future version of the server'
+                        )
                 data[element['destination']] = [tmp_filename_mha]
 
             elif element['type'] == 'slider':
@@ -401,7 +416,7 @@ class TomaatServiceDelayedResponse(TomaatService):
     def interface(self, request):
         request.setHeader('Access-Control-Allow-Origin', '*')
         request.setHeader('Access-Control-Allow-Methods', 'GET')
-        request.setHeader('Access-Control-Allow-Headers', 'x-prototype-version,x-requested-with')
+        request.setHeader('Access-Control-Allow-Headers', '*')
         request.setHeader('Access-Control-Max-Age', 2520)  # 42 hours
 
         return json.dumps(self.input_interface)
@@ -411,7 +426,7 @@ class TomaatServiceDelayedResponse(TomaatService):
     def predict(self, request):
         request.setHeader('Access-Control-Allow-Origin', '*')
         request.setHeader('Access-Control-Allow-Methods', 'POST')
-        request.setHeader('Access-Control-Allow-Headers', 'x-prototype-version,x-requested-with')
+        request.setHeader('Access-Control-Allow-Headers', '*')
         request.setHeader('Access-Control-Max-Age', 2520)  # 42 hours
 
         logger.info('predicting...')
@@ -425,7 +440,7 @@ class TomaatServiceDelayedResponse(TomaatService):
     def responses(self, request):
         request.setHeader('Access-Control-Allow-Origin', '*')
         request.setHeader('Access-Control-Allow-Methods', 'POST')
-        request.setHeader('Access-Control-Allow-Headers', 'x-prototype-version,x-requested-with')
+        request.setHeader('Access-Control-Allow-Headers', '*')
         request.setHeader('Access-Control-Max-Age', 2520)  # 42 hours
 
         logger.info('getting responses...')
