@@ -17,7 +17,6 @@ except ImportError:
     from urllib2 import urlopen
 
 from multiprocessing import Process, Manager, Lock
-from urllib2 import urlopen
 
 from klein import Klein
 from twisted.internet.defer import inlineCallbacks, returnValue, DeferredLock
@@ -202,7 +201,7 @@ class TomaatService(object):
         data = {}
 
         for element in self.input_interface:
-            raw = request.args[element['destination']]
+            raw = request.args[element['destination'].encode('UTF-8')]
 
             if element['type'] == 'volume':
                 uid = uuid.uuid4()
@@ -266,7 +265,7 @@ class TomaatService(object):
                 writer.Execute(data[field][0])
 
                 with open(tmp_label_volume, 'rb') as f:
-                    vol_string = base64.encodestring(f.read())
+                    vol_string = base64.encodestring(f.read()).decode('utf-8')
 
                 message.append({'type': 'LabelVolume', 'content': vol_string, 'label': ''})
 
