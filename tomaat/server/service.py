@@ -342,10 +342,14 @@ class TomaatService(object):
                 trf_file_name = str(uid) + '.' + trf_file_type[type]
                 trf_file_path = os.path.join(savepath, trf_file_name)
 
-                sitk.WriteTransform(data[field][0],trf_file_path)
+                if type == "TransformGrid":
+                    # Displacement fields are stored as regular volumes.
+                    sitk.WriteImage(data[field][0],trf_file_path)
+                else:
+                    sitk.WriteTransform(data[field][0],trf_file_path)
 
                 with open(trf_file_path, 'rb') as f:
-                    vol_string = base64.encodestring(f.read())
+                    vol_string = base64.encodestring(f.read()).decode("utf-8")
 
                 message.append({'type': type, 'content': vol_string, 'label': ''})
 
