@@ -237,6 +237,37 @@ class TomaatService(object):
                 fiducial_list = [ [ float(val) for val in coords.split(',')] for coords in fiducial_string.split(';')]
                 data[element['destination']] = [np.asarray(fiducial_list)]
 
+            elif element['type'] == 'transform':
+                dtype = {
+                  'nii.gz':'grid',
+                  'h5': 'bspline',
+                  'mat':'linear'
+                }
+                # transform encoding:
+                # <filetype> newline
+                # <base64 of file>
+
+                # determine file type
+                req = str(raw[0])
+                trf_file_type = ""
+                for trf_type in dtype.keys():
+                    if req.startswith(trf_type+"\n"):
+                        trf_file_type = '.' + trf_type
+
+                if not trf_file_type:
+                    # invalid format
+                    return
+
+                # store file
+                uid = uuid.uuid4()
+                trf_file = str(uid) + trf_file_type
+                tmp_transform = os.path.join(savepath, trf_file)
+                with open(tmp_transform, 'wb') as f:
+                    # write base64 data
+                    f.write(base64.decodestring(req[len(trf_file_type):]))
+
+                data[element['destination']] = [tmp_transform]
+
         return data
 
     def make_response(self, data, savepath):
@@ -299,6 +330,30 @@ class TomaatService(object):
                 fiducial_array = data[field][0]
                 fiducial_str = ';'.join([','.join(map(str,fid_point)) for fid_point in fiducial_array])
                 message.append({'type': 'Fiducials', 'content': fiducial_str, 'label': ''})
+
+            elif type in ['TransformGrid','TransformBSpline','TransformLinear']:
+                trf_file_type = {
+                    'TransformGrid':'nii.gz',
+                    'TransformBSpline':'h5',
+                    'TransformLinear':'mat',
+                }
+                uid = uuid.uuid4()
+
+                trf_file_name = str(uid) + '.' + trf_file_type[type]
+                trf_file_path = os.path.join(savepath, trf_file_name)
+
+                if type == "TransformGrid":
+                    # Displacement fields are stored as regular volumes.
+                    sitk.WriteImage(data[field][0],trf_file_path)
+                else:
+                    sitk.WriteTransform(data[field][0],trf_file_path)
+
+                with open(trf_file_path, 'rb') as f:
+                    vol_string = base64.encodestring(f.read()).decode("utf-8")
+
+                message.append({'type': type, 'content': vol_string, 'label': ''})
+
+                os.remove(trf_file_path)
 
         return message
 
