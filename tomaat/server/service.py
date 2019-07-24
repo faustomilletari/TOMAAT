@@ -124,7 +124,7 @@ class TomaatService(object):
         request.setHeader('Access-Control-Allow-Origin', '*')
         request.setHeader('Access-Control-Allow-Methods', 'GET')
         request.setHeader('Access-Control-Allow-Headers', '*')
-        request.setHeader('Access-Control-Max-Age', 2520)  # 42 hours
+        request.setHeader('Access-Control-Max-Age', '2520')  # 42 hours
 
         return json.dumps(self.input_interface)
 
@@ -134,7 +134,7 @@ class TomaatService(object):
         request.setHeader('Access-Control-Allow-Origin', '*')
         request.setHeader('Access-Control-Allow-Methods', 'POST')
         request.setHeader('Access-Control-Allow-Headers', '*')
-        request.setHeader('Access-Control-Max-Age', 2520)  # 42 hours
+        request.setHeader('Access-Control-Max-Age', '520')  # 42 hours
 
         logger.info('predicting...')
 
