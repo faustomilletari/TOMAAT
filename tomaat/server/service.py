@@ -118,13 +118,36 @@ class TomaatService(object):
 
         self.input_interface = input_interface
         self.output_interface = output_interface
+        if not "cert_path" in self.config.keys():
+            self.config["cert_path"] = "./tomaat_cert"
+
+        cert_private = self.config["cert_path"] + ".key"
+        cert_public = self.config["cert_path"] + ".crt"
+
+        if not os.path.exists(cert_private) or not os.path.exists(cert_public):
+            from . import makecert
+            makecert.create_self_signed_cert(cert_public,cert_private)
+
+        # setup https
+        endpoint_specification = "ssl:{}".format(self.config['port'])
+        endpoint_specification += ":certKey="+cert_public
+        endpoint_specification += ":privateKey="+cert_private
+
+        self.config['endpoint_specification'] = endpoint_specification
+
+
+    @klein_app.route('/announcePoint', methods=['GET'])
+    def announcePoint(self, request):
+        try: ap = self.config['announcement']
+        except: ap = ""
+        return json.dumps({"announced_at":ap})
 
     @klein_app.route('/interface', methods=['GET'])
     def interface(self, request):
         request.setHeader('Access-Control-Allow-Origin', '*')
         request.setHeader('Access-Control-Allow-Methods', 'GET')
         request.setHeader('Access-Control-Allow-Headers', '*')
-        request.setHeader('Access-Control-Max-Age', 2520)  # 42 hours
+        request.setHeader('Access-Control-Max-Age', '2520')  # 42 hours
 
         return json.dumps(self.input_interface)
 
@@ -134,7 +157,7 @@ class TomaatService(object):
         request.setHeader('Access-Control-Allow-Origin', '*')
         request.setHeader('Access-Control-Allow-Methods', 'POST')
         request.setHeader('Access-Control-Allow-Headers', '*')
-        request.setHeader('Access-Control-Max-Age', 2520)  # 42 hours
+        request.setHeader('Access-Control-Max-Age', '520')  # 42 hours
 
         logger.info('predicting...')
 
@@ -391,7 +414,9 @@ class TomaatService(object):
         return json.dumps(response)
 
     def run(self):
-        self.klein_app.run(port=self.config['port'], host='0.0.0.0')
+        endpoint_specification = self.config.get("endpoint_specification",None)
+
+        self.klein_app.run(port=self.config['port'], host='0.0.0.0', endpoint_description=endpoint_specification)
         reactor.run()
 
 
