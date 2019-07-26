@@ -124,9 +124,12 @@ class TomaatService(object):
         cert_private = self.config["cert_path"] + ".key"
         cert_public = self.config["cert_path"] + ".crt"
 
+        from . import makecert
         if not os.path.exists(cert_private) or not os.path.exists(cert_public):
-            from . import makecert
             makecert.create_self_signed_cert(cert_public,cert_private)
+
+        cert_fingerprint = makecert.get_cert_fingerprint(cert_public)
+        print("\nMake sure to check the fingerprint of this endpoint on the client side.\nThe fingerprint is:\n\n{}\n".format(cert_fingerprint))
 
         # setup https
         endpoint_specification = "ssl:{}".format(self.config['port'])
