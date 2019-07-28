@@ -8,6 +8,7 @@ import base64
 import traceback
 import numpy as np
 import shutil
+import sys
 
 try:
     # For Python 3.0 and later
@@ -228,6 +229,13 @@ class TomaatService(object):
 
         for element in self.input_interface:
             raw = request.args[element['destination'].encode('UTF-8')]
+            if sys.version_info.major == 2:
+                raw_first = str(raw[0])
+            else:
+                try:
+                    raw_first = raw[0].decode("utf-8")
+                except:
+                    raw_first = raw[0]
 
             if element['type'] == 'volume':
                 uid = uuid.uuid4()
@@ -237,10 +245,10 @@ class TomaatService(object):
                 tmp_filename_mha = os.path.join(savepath, mha_file)
 
                 with open(tmp_filename_mha, 'wb') as f:
-                    if is_base64(raw[0]):
-                        f.write(base64.decodestring(raw[0]))
-                    else:
-                        f.write(raw[0])
+                    try:
+                        f.write(__base64_decode__(raw_first))
+                    except:
+                        f.write(raw_first)
                         print(
                             'Your client has passed RAW file content instead of base64 encoded string: '
                             'this is deprecated and will result in errors in future version of the server'
@@ -248,18 +256,18 @@ class TomaatService(object):
                 data[element['destination']] = [tmp_filename_mha]
 
             elif element['type'] == 'slider':
-                data[element['destination']] = [float(raw[0])]
+                data[element['destination']] = [float(raw_first)]
 
             elif element['type'] == 'checkbox':
-                data[element['destination']] = [str(raw[0])]
+                data[element['destination']] = [str(raw_first)]
 
             elif element['type'] == 'radiobutton':
-                data[element['destination']] = [str(raw[0])]
+                data[element['destination']] = [str(raw_first)]
 
             elif element['type'] == 'fiducials':
                 # Each coordinate is separated by ';'
                 # Each coord value is separated by ','
-                fiducial_string = str(raw[0])
+                fiducial_string = str(raw_first)
                 fiducial_list = [ [ float(val) for val in coords.split(',')] for coords in fiducial_string.split(';')]
                 data[element['destination']] = [np.asarray(fiducial_list)]
 
@@ -274,7 +282,7 @@ class TomaatService(object):
                 # <base64 of file>
 
                 # determine file type
-                req = str(raw[0])
+                req = raw_first
                 trf_file_type = ""
                 for trf_type in dtype.keys():
                     if req.startswith(trf_type+"\n"):
@@ -290,7 +298,7 @@ class TomaatService(object):
                 tmp_transform = os.path.join(savepath, trf_file)
                 with open(tmp_transform, 'wb') as f:
                     # write base64 data
-                    f.write(base64.decodestring(req[len(trf_file_type):]))
+                    f.write( __base64_decode__(req[len(trf_file_type):]) )
 
                 data[element['destination']] = [tmp_transform]
 
@@ -338,12 +346,12 @@ class TomaatService(object):
 
                 writer = vtk.vtkPolyDataWriter()
                 writer.SetFileName(tmp_vtk_mesh)
-                writer.SetInput(data[field][0])
+                writer.SetInputData(data[field][0])
                 writer.SetFileTypeToASCII()
                 writer.Write()
 
                 with open(tmp_vtk_mesh, 'rb') as f:
-                    mesh_string = base64.encodestring(f.read())
+                    mesh_string = base64.encodestring(f.read()).decode('utf-8')
 
                 message.append({'type': 'VTKMesh', 'content': mesh_string, 'label': ''})
 
@@ -556,3 +564,16 @@ class TomaatServiceDelayedResponse(TomaatService):
 
 
         return json.dumps(response)
+
+# base64 utils
+def __base64_decode__(data_in):
+    if sys.version_info.major == 2:
+        return base64.decodestring(data_in)
+    else:
+        return base64.decodebytes(data_in.encode("ascii"))
+
+def __base64_encode__(data_in):
+    if sys.version_info.major == 2:
+        return base64.encodestring(data_in)
+    else:
+        return base64.encodebytes(data_in).decode("ascii")
