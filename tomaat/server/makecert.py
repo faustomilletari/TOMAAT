@@ -32,5 +32,8 @@ def create_self_signed_cert(CERT_FILE = "./tomaat.crt",KEY_FILE = "./tomaat.key"
         with open(KEY_FILE, "wb") as f:
             f.write(crypto.dump_privatekey(crypto.FILETYPE_PEM, k))
 
-if __name__ == "__main__":
-    create_self_signed_cert(".")
+def get_cert_fingerprint(CERT_FILE):
+    with open(CERT_FILE,"rb") as c:
+        x509 = crypto.load_certificate(crypto.FILETYPE_PEM,c.read())
+    cert_hash = x509.digest("sha256").decode("ASCII").upper()
+    return cert_hash

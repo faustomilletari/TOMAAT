@@ -6,40 +6,42 @@ from tomaat.server import TomaatService, TomaatApp
 
 import SimpleITK as sitk
 import numpy as np
+import vtk
 
 config = {
-    "name": "Example TOMAAT thresholding app",
+    "name": "Example TOMAAT monkey mesh app",
     "modality": "Example Modality",
     "task": "Example Task",
     "anatomy": "Example Anatomy",
     "description":"Example Description",
-    "port": 9001,
+    "port": 9000,
     "announce": False,
     "api_key": "",
 }
 
-iface_in = [{'type':'volume','destination':'images'}]
-iface_out = [{'type':'LabelVolume','field':'images'}]
+iface_in = [{'type':'checkbox','destination':'checkbox','text':'checkbox test'}]
+iface_out = [{'type':'VTKMesh','field':'mesh','text':'monkey'}]
 
-def preprocess(input):
-    return {'images':[sitk.ReadImage(input['images'][0])] }
+def preprocess(data_in):
+    monkey = "monkey.stl"
+    script_dir = os.path.dirname(__file__)
+    monkey_path = os.path.join(script_dir,monkey)
+    return {
+        "mesh_path":monkey_path
+    }
 
 def inference(data):
-    itk_image = data['images'][0]
-    image_data = sitk.GetArrayFromImage(itk_image)
-    treshold = np.mean(image_data)
-    image_binary = image_data >= treshold
+    r = vtk.vtkSTLReader()
+    r.SetFileName(data['mesh_path'])
+    r.Update()
+    monkey_mesh = r.GetOutput()
     return {
-        'image_data': image_binary,
-        'image_old': itk_image,
+        'mesh_vtk':monkey_mesh
     }
 
 def postprocess(output):
-    binarized_image = output['image_data'].astype(np.float)
-    image_new = sitk.GetImageFromArray(binarized_image)
-    image_new.CopyInformation(output['image_old'])
     return {
-        'images':[image_new]
+        'mesh':[output['mesh_vtk']],
     }
 
 
